@@ -11,12 +11,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Application, Student } from '@/types';
 import { toast } from '@/components/ui/sonner';
 import { ChevronLeft } from 'lucide-react';
-import { useResumeStorage } from '@/hooks/useResumeStorage';
 
 export default function ShortlistedApplicantsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { bucketExists, isChecking } = useResumeStorage();
   const [isLoading, setIsLoading] = useState(true);
   const [applications, setApplications] = useState<(Application & { student: Student, jobTitle?: string, jobCompany?: string })[]>([]);
 
@@ -25,10 +23,6 @@ export default function ShortlistedApplicantsPage() {
       if (!user?.id) {
         setIsLoading(false);
         return;
-      }
-
-      if (isChecking) {
-        return; // Wait for bucket check to complete
       }
 
       try {
@@ -59,27 +53,54 @@ export default function ShortlistedApplicantsPage() {
           return acc;
         }, {} as Record<string, { title: string, company: string }>);
 
-        // Fetch shortlisted applications with student profiles in a single join query
-        const { data: applicationsWithProfiles, error: joinError } = await supabase
+        // First fetch all shortlisted applications
+        const { data: applications, error: applicationsError } = await supabase
           .from('applications')
-          .select(`
-            *,
-            profiles:student_id(*)
-          `)
+          .select('*')
           .eq('status', 'shortlisted')
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
-
-        if (joinError) {
-          console.error("Error fetching shortlisted applications with profiles:", joinError);
-          throw joinError;
+          
+        if (applicationsError) {
+          console.error("Error fetching shortlisted applications:", applicationsError);
+          throw applicationsError;
+        }
+        
+        if (!applications || applications.length === 0) {
+          console.log("No shortlisted applications found");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Now collect all student IDs to fetch their profiles
+        const studentIds = applications.map(app => app.student_id).filter(Boolean);
+        
+        // Fetch all relevant student profiles in one query
+        let studentProfiles: Record<string, any> = {};
+        
+        if (studentIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', studentIds);
+            
+          if (profilesError) {
+            console.error("Error fetching student profiles:", profilesError);
+            // Don't throw, just continue with empty profiles
+          } else if (profiles) {
+            // Create a map of student ID to profile data
+            studentProfiles = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as Record<string, any>);
+            
+            console.log("Fetched student profiles for shortlisted:", profiles.length);
+          }
         }
 
-        console.log("Shortlisted applications with profiles data:", applicationsWithProfiles);
-        
         // Format the data for consumption by the UI
-        const formattedApplications = (applicationsWithProfiles || []).map(app => {
-          const studentProfile = app.profiles;
+        const formattedApplications = applications.map(app => {
+          const studentProfile = studentProfiles[app.student_id || ''];
           
           return {
             id: app.id,
@@ -120,10 +141,8 @@ export default function ShortlistedApplicantsPage() {
       }
     }
 
-    if (!isChecking) {
-      fetchShortlistedApplications();
-    }
-  }, [user?.id, isChecking, bucketExists]);
+    fetchShortlistedApplications();
+  }, [user?.id]);
 
   const handleContact = (studentId: string) => {
     const student = applications.find(app => app.student?.id === studentId)?.student;
@@ -153,7 +172,7 @@ export default function ShortlistedApplicantsPage() {
           <h1 className="text-2xl font-bold text-gray-800">Shortlisted Applicants</h1>
         </div>
 
-        {isLoading || isChecking ? (
+        {isLoading ? (
           <div className="flex justify-center items-center py-16">
             <Spinner size="lg" />
           </div>

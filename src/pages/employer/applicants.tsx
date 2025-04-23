@@ -8,11 +8,9 @@ import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Application, Student } from '@/types';
-import { useResumeStorage } from '@/hooks/useResumeStorage';
 
 export default function ApplicantsPage() {
   const { user } = useAuth();
-  const { bucketExists, isChecking } = useResumeStorage();
   const [isLoading, setIsLoading] = useState(true);
   const [applications, setApplications] = useState<(Application & { 
     student: Student, 
@@ -23,10 +21,6 @@ export default function ApplicantsPage() {
   useEffect(() => {
     async function fetchApplications() {
       if (!user?.id) return;
-      
-      if (isChecking) {
-        return; // Wait for bucket check to complete
-      }
       
       try {
         console.log("Fetching applications for employer:", user.id);
@@ -56,26 +50,53 @@ export default function ApplicantsPage() {
           return acc;
         }, {} as Record<string, { title: string, company: string }>);
         
-        // Fetch applications with student profiles in a single join query
-        const { data: applicationsWithProfiles, error: joinError } = await supabase
+        // First fetch all applications
+        const { data: applications, error: applicationsError } = await supabase
           .from('applications')
-          .select(`
-            *,
-            profiles:student_id(*)
-          `)
+          .select('*')
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
-        
-        if (joinError) {
-          console.error("Error fetching applications with profiles:", joinError);
-          throw joinError;
+          
+        if (applicationsError) {
+          console.error("Error fetching applications:", applicationsError);
+          throw applicationsError;
         }
         
-        console.log("Applications with profiles data:", applicationsWithProfiles);
+        if (!applications || applications.length === 0) {
+          console.log("No applications found");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Now collect all student IDs to fetch their profiles
+        const studentIds = applications.map(app => app.student_id).filter(Boolean);
+        
+        // Fetch all relevant student profiles in one query
+        let studentProfiles: Record<string, any> = {};
+        
+        if (studentIds.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', studentIds);
+            
+          if (profilesError) {
+            console.error("Error fetching student profiles:", profilesError);
+            // Don't throw, just continue with empty profiles
+          } else if (profiles) {
+            // Create a map of student ID to profile data
+            studentProfiles = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as Record<string, any>);
+            
+            console.log("Fetched student profiles:", profiles.length);
+          }
+        }
         
         // Format the data for consumption by the UI
-        const formattedApplications = (applicationsWithProfiles || []).map(app => {
-          const studentProfile = app.profiles;
+        const formattedApplications = applications.map(app => {
+          const studentProfile = studentProfiles[app.student_id || ''];
           
           return {
             id: app.id,
@@ -116,11 +137,8 @@ export default function ApplicantsPage() {
       }
     }
 
-    // Wait until we've checked the bucket before fetching applications
-    if (!isChecking) {
-      fetchApplications();
-    }
-  }, [user?.id, isChecking, bucketExists]);
+    fetchApplications();
+  }, [user?.id]);
 
   const handleContact = (studentId: string) => {
     const student = applications.find(app => app.student?.id === studentId)?.student;
@@ -139,7 +157,7 @@ export default function ApplicantsPage() {
       <main className="flex-grow container mx-auto px-4 py-8 mt-16">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">All Applicants</h1>
 
-        {isLoading || isChecking ? (
+        {isLoading ? (
           <div className="flex justify-center items-center py-16">
             <Spinner size="lg" />
           </div>

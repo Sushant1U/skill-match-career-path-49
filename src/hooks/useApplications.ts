@@ -38,32 +38,53 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Use a JOIN query to get applications with student profiles in a single request
-      const { data: applicationsWithProfiles, error: joinError } = await supabase
+      // First fetch all applications for these jobs
+      const { data: applications, error: applicationsError } = await supabase
         .from('applications')
-        .select(`
-          *,
-          profiles:student_id(*)
-        `)
+        .select('*')
         .in('job_id', jobIds)
         .order('created_at', { ascending: false })
         .limit(5);
       
-      if (joinError) {
-        console.error("Error fetching applications with profiles:", joinError);
-        throw joinError;
+      if (applicationsError) {
+        console.error("Error fetching applications:", applicationsError);
+        throw applicationsError;
       }
       
-      console.log("Raw applications with profiles data:", applicationsWithProfiles);
-      
-      if (!applicationsWithProfiles || applicationsWithProfiles.length === 0) {
+      if (!applications || applications.length === 0) {
         console.log("No applications found");
         return [];
       }
       
+      // Now collect all student IDs to fetch their profiles
+      const studentIds = applications.map(app => app.student_id).filter(Boolean);
+      
+      // Fetch all relevant student profiles in one query
+      let studentProfiles: Record<string, any> = {};
+      
+      if (studentIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', studentIds);
+          
+        if (profilesError) {
+          console.error("Error fetching student profiles:", profilesError);
+          // Don't throw, just continue with empty profiles
+        } else if (profiles) {
+          // Create a map of student ID to profile data
+          studentProfiles = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+          
+          console.log("Fetched student profiles:", profiles.length);
+        }
+      }
+      
       // Format the data for consumption by the UI
-      return applicationsWithProfiles.map(app => {
-        const studentProfile = app.profiles;
+      return applications.map(app => {
+        const studentProfile = studentProfiles[app.student_id || ''];
         
         return {
           id: app.id,

@@ -24,6 +24,12 @@ export const ApplicationItem = ({
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
   
   console.log("ApplicationItem received:", application);
+  
+  if (!application) {
+    console.error("ApplicationItem received undefined application");
+    return null;
+  }
+  
   console.log("Student data:", application.student);
 
   const handleContactStudent = () => {
@@ -42,14 +48,20 @@ export const ApplicationItem = ({
   
   console.log("Has resume:", hasResume, "Resume URL:", resumeUrl);
 
+  // Get student name, defaulting to Anonymous if not available
+  const studentName = application.student?.name || "Anonymous Applicant";
+  
+  // Get student location, defaulting to Unknown if not available
+  const studentLocation = application.student?.location || "Unknown location";
+
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between">
         <div>
           <h3 className="text-xl font-semibold text-gray-800 mb-1">
-            {application.student?.name || "Anonymous Applicant"}
+            {studentName}
           </h3>
-          <p className="text-gray-500 mb-3">{application.student?.location || "Unknown location"}</p>
+          <p className="text-gray-500 mb-3">{studentLocation}</p>
         </div>
         <div className="flex space-x-2">
           <Button 
