@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +28,7 @@ export function useResumeStorage() {
         console.log("Bucket error response:", error);
         
         if (error.message.includes('The resource was not found') || 
-            error.code === '404') {
+            error.status === 404) {
           // Bucket doesn't exist, create it
           console.log("Resumes bucket does not exist. Creating it...");
           const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
