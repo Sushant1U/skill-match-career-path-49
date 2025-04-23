@@ -38,17 +38,22 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // First fetch all applications
+      // Fetch applications with student profiles in a single query
       const { data: applications, error: applicationsError } = await supabase
         .from('applications')
         .select(`
-          *,
-          student:profiles(
-            id, 
-            name, 
-            email, 
-            location, 
-            bio, 
+          id,
+          job_id,
+          student_id,
+          status,
+          created_at,
+          resume_url,
+          student:profiles!student_id(
+            id,
+            name,
+            email,
+            location,
+            bio,
             skills,
             resume_url
           )
