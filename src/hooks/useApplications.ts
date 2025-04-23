@@ -29,25 +29,31 @@ export const useApplications = (userId?: string) => {
         throw error;
       }
       
-      return (data || []).map(app => ({
-        id: app.id,
-        jobId: app.job_id,
-        studentId: app.student_id,
-        status: app.status,
-        createdAt: app.created_at,
-        resumeUrl: app.resume_url || app.student?.resume_url,
-        jobTitle: app.job?.title,
-        jobCompany: app.job?.company,
-        student: app.student ? {
-          id: app.student.id,
-          name: app.student.name || 'Anonymous',
-          email: app.student.email, 
-          skills: app.student.skills || [],
-          location: app.student.location || 'Location not specified',
-          resumeUrl: app.student.resume_url,
-          qualifications: app.student.qualifications || []
-        } : null
-      })) as (Application & { 
+      console.log("Raw application data:", data);
+      
+      return (data || []).map(app => {
+        console.log("Processing application:", app.id, "Student:", app.student);
+        
+        return {
+          id: app.id,
+          jobId: app.job_id,
+          studentId: app.student_id,
+          status: app.status,
+          createdAt: app.created_at,
+          resumeUrl: app.resume_url || app.student?.resume_url,
+          jobTitle: app.job?.title,
+          jobCompany: app.job?.company,
+          student: app.student ? {
+            id: app.student.id,
+            name: app.student.name || 'Anonymous',
+            email: app.student.email || '', 
+            skills: app.student.skills || [],
+            location: app.student.location || 'Location not specified',
+            resumeUrl: app.student.resume_url || '',
+            qualifications: app.student.qualifications || []
+          } : null
+        };
+      }) as (Application & { 
         student: Student | null, 
         jobTitle?: string, 
         jobCompany?: string 

@@ -26,6 +26,7 @@ export const ApplicationItem = ({
   const navigate = useNavigate();
 
   const handleContactStudent = () => {
+    console.log("Contact student:", application.student);
     if (application.student?.email) {
       window.location.href = `mailto:${application.student.email}?subject=Regarding your job application`;
     } else {
@@ -36,6 +37,8 @@ export const ApplicationItem = ({
   const handleViewShortlisted = () => {
     navigate('/employer/shortlisted');
   };
+
+  const hasResume = application.student?.resumeUrl && application.student.resumeUrl !== '';
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
@@ -98,7 +101,7 @@ export const ApplicationItem = ({
       )}
 
       <div className="flex justify-between mt-4 pt-3 border-t border-gray-100">
-        {application.student?.resumeUrl ? (
+        {hasResume ? (
           <Button 
             variant="link" 
             className="text-sm text-blue-600 hover:text-blue-800 hover:underline p-0"
@@ -108,7 +111,10 @@ export const ApplicationItem = ({
             View Resume
           </Button>
         ) : (
-          <span className="text-sm text-gray-400">No resume available</span>
+          <span className="text-sm text-gray-400 flex items-center">
+            <FileText className="mr-2 h-4 w-4" />
+            No resume available
+          </span>
         )}
         
         <Button 
@@ -120,11 +126,11 @@ export const ApplicationItem = ({
         </Button>
       </div>
 
-      {application.student?.resumeUrl && (
+      {hasResume && (
         <ResumePreviewDialog
           isOpen={isResumeDialogOpen}
           onClose={() => setIsResumeDialogOpen(false)}
-          resumeUrl={application.student.resumeUrl}
+          resumeUrl={application.student.resumeUrl as string}
         />
       )}
     </div>

@@ -24,21 +24,32 @@ export default function ApplicantsPage() {
     async function fetchApplications() {
       if (!user?.id) return;
       
+      if (isChecking) {
+        return; // Wait for bucket check to complete
+      }
+      
       try {
+        console.log("Fetching applications for employer:", user.id);
         // First get all jobs posted by this employer
         const { data: jobs, error: jobsError } = await supabase
           .from('jobs')
           .select('id, title, company')
           .eq('employer_id', user.id);
 
-        if (jobsError) throw jobsError;
+        if (jobsError) {
+          console.error("Error fetching jobs:", jobsError);
+          throw jobsError;
+        }
 
         if (!jobs || jobs.length === 0) {
+          console.log("No jobs found for employer");
           setIsLoading(false);
           return;
         }
 
         const jobIds = jobs.map(job => job.id);
+        console.log("Job IDs:", jobIds);
+        
         const jobDetailsMap = jobs.reduce((acc, job) => {
           acc[job.id] = { title: job.title, company: job.company };
           return acc;
@@ -53,7 +64,12 @@ export default function ApplicantsPage() {
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching applications:", error);
+          throw error;
+        }
+        
+        console.log("Applications data:", data);
         
         const formattedApplications = (data || []).map(app => ({
           id: app.id,
@@ -67,14 +83,15 @@ export default function ApplicantsPage() {
           student: app.student ? {
             id: app.student.id,
             name: app.student.name || 'Anonymous',
-            email: app.student.email,
+            email: app.student.email || '',
             skills: app.student.skills || [],
             location: app.student.location || 'Location not specified',
-            resumeUrl: app.student.resume_url,
+            resumeUrl: app.student.resume_url || '',
             qualifications: app.student.qualifications || []
           } : null
         }));
         
+        console.log("Formatted applications:", formattedApplications);
         setApplications(formattedApplications);
       } catch (error: any) {
         console.error('Error fetching applications:', error);
@@ -92,6 +109,7 @@ export default function ApplicantsPage() {
 
   const handleContact = (studentId: string) => {
     const student = applications.find(app => app.student?.id === studentId)?.student;
+    console.log("Contacting student:", student);
     if (student?.email) {
       window.location.href = `mailto:${student.email}?subject=Regarding your job application`;
     } else {

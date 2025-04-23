@@ -11,10 +11,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Application, Student } from '@/types';
 import { toast } from '@/components/ui/sonner';
 import { ChevronLeft } from 'lucide-react';
+import { useResumeStorage } from '@/hooks/useResumeStorage';
 
 export default function ShortlistedApplicantsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { bucketExists, isChecking } = useResumeStorage();
   const [isLoading, setIsLoading] = useState(true);
   const [applications, setApplications] = useState<(Application & { student: Student | null, jobTitle?: string, jobCompany?: string })[]>([]);
 
@@ -25,21 +27,33 @@ export default function ShortlistedApplicantsPage() {
         return;
       }
 
+      if (isChecking) {
+        return; // Wait for bucket check to complete
+      }
+
       try {
+        console.log("Fetching shortlisted applications for employer:", user.id);
+        
         // First get all jobs posted by this employer
         const { data: jobs, error: jobsError } = await supabase
           .from('jobs')
           .select('id, title, company')
           .eq('employer_id', user.id);
 
-        if (jobsError) throw jobsError;
+        if (jobsError) {
+          console.error("Error fetching jobs:", jobsError);
+          throw jobsError;
+        }
 
         if (!jobs || jobs.length === 0) {
+          console.log("No jobs found for employer");
           setIsLoading(false);
           return;
         }
 
         const jobIds = jobs.map(job => job.id);
+        console.log("Job IDs:", jobIds);
+        
         const jobDetailsMap = jobs.reduce((acc, job) => {
           acc[job.id] = { title: job.title, company: job.company };
           return acc;
@@ -56,7 +70,12 @@ export default function ShortlistedApplicantsPage() {
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching shortlisted applications:", error);
+          throw error;
+        }
+
+        console.log("Shortlisted applications data:", data);
 
         const formattedApplications = (data || []).map(app => ({
           id: app.id,
@@ -70,14 +89,15 @@ export default function ShortlistedApplicantsPage() {
           student: app.student ? {
             id: app.student.id,
             name: app.student.name || 'Anonymous',
-            email: app.student.email,
+            email: app.student.email || '',
             skills: app.student.skills || [],
             location: app.student.location || 'Location not specified',
-            resumeUrl: app.student.resume_url,
+            resumeUrl: app.student.resume_url || '',
             qualifications: app.student.qualifications || []
           } : null
         }));
 
+        console.log("Formatted applications:", formattedApplications);
         setApplications(formattedApplications);
       } catch (error) {
         console.error('Error fetching shortlisted applications:', error);
@@ -88,10 +108,11 @@ export default function ShortlistedApplicantsPage() {
     }
 
     fetchShortlistedApplications();
-  }, [user?.id]);
+  }, [user?.id, isChecking, bucketExists]);
 
   const handleContact = (studentId: string) => {
     const student = applications.find(app => app.student?.id === studentId)?.student;
+    console.log("Contacting student:", student);
     if (student?.email) {
       window.location.href = `mailto:${student.email}?subject=Regarding your job application`;
     } else {
@@ -109,7 +130,7 @@ export default function ShortlistedApplicantsPage() {
             variant="ghost" 
             size="sm" 
             className="mr-2"
-            onClick={() => navigate('/employer/dashboard')}
+            onClick={() => navigate('/employer-dashboard')}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back
@@ -117,7 +138,7 @@ export default function ShortlistedApplicantsPage() {
           <h1 className="text-2xl font-bold text-gray-800">Shortlisted Applicants</h1>
         </div>
 
-        {isLoading ? (
+        {isLoading || isChecking ? (
           <div className="flex justify-center items-center py-16">
             <Spinner size="lg" />
           </div>

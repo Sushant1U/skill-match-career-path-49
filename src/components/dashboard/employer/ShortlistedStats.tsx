@@ -15,17 +15,27 @@ export function ShortlistedStats() {
     queryFn: async () => {
       if (!user?.id) return 0;
       
+      console.log("Fetching shortlisted count for employer:", user?.id);
+      
       // First get all jobs for this employer
       const { data: jobs, error: jobsError } = await supabase
         .from('jobs')
         .select('id')
         .eq('employer_id', user.id);
       
-      if (jobsError) throw jobsError;
-      if (!jobs || jobs.length === 0) return 0;
+      if (jobsError) {
+        console.error("Error fetching jobs:", jobsError);
+        throw jobsError;
+      }
+      
+      if (!jobs || jobs.length === 0) {
+        console.log("No jobs found for employer");
+        return 0;
+      }
       
       // Extract job IDs
       const jobIds = jobs.map(job => job.id);
+      console.log("Found job IDs:", jobIds);
       
       // Now count shortlisted applications for these jobs
       const { count, error } = await supabase
@@ -34,7 +44,12 @@ export function ShortlistedStats() {
         .eq('status', 'shortlisted')
         .in('job_id', jobIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error counting shortlisted applications:", error);
+        throw error;
+      }
+      
+      console.log("Shortlisted applications count:", count);
       return count || 0;
     },
     enabled: !!user?.id,
