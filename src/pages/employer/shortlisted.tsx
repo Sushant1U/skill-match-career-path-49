@@ -50,7 +50,7 @@ export default function ShortlistedApplicantsPage() {
           .from('applications')
           .select(`
             *,
-            student:profiles(id, name, email, skills, location, resume_url)
+            student:profiles(id, name, email, skills, location, resume_url, qualifications)
           `)
           .eq('status', 'shortlisted')
           .in('job_id', jobIds)
@@ -73,7 +73,8 @@ export default function ShortlistedApplicantsPage() {
             email: app.student.email,
             skills: app.student.skills || [],
             location: app.student.location || 'Location not specified',
-            resumeUrl: app.student.resume_url
+            resumeUrl: app.student.resume_url,
+            qualifications: app.student.qualifications || []
           } : null
         }));
 

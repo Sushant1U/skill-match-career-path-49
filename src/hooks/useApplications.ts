@@ -18,7 +18,7 @@ export const useApplications = (userId?: string) => {
         .select(`
           *,
           job:jobs(title, company),
-          student:profiles(id, name, email, skills, location, resume_url)
+          student:profiles(id, name, email, skills, location, resume_url, qualifications)
         `)
         .eq('jobs.employer_id', userId)
         .order('created_at', { ascending: false })
@@ -41,10 +41,11 @@ export const useApplications = (userId?: string) => {
         student: app.student ? {
           id: app.student.id,
           name: app.student.name || 'Anonymous',
-          email: app.student.email, // Ensure email is included
+          email: app.student.email, 
           skills: app.student.skills || [],
           location: app.student.location || 'Location not specified',
-          resumeUrl: app.student.resume_url
+          resumeUrl: app.student.resume_url,
+          qualifications: app.student.qualifications || []
         } : null
       })) as (Application & { 
         student: Student | null, 

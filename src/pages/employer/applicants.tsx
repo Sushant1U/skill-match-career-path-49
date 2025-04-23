@@ -48,7 +48,7 @@ export default function ApplicantsPage() {
           .from('applications')
           .select(`
             *,
-            student:profiles(id, name, email, skills, location, resume_url)
+            student:profiles(id, name, email, skills, location, resume_url, qualifications)
           `)
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
@@ -70,7 +70,8 @@ export default function ApplicantsPage() {
             email: app.student.email,
             skills: app.student.skills || [],
             location: app.student.location || 'Location not specified',
-            resumeUrl: app.student.resume_url
+            resumeUrl: app.student.resume_url,
+            qualifications: app.student.qualifications || []
           } : null
         }));
         

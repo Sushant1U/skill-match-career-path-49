@@ -11,6 +11,8 @@ import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import EmployerDashboard from "./pages/dashboard/EmployerDashboard";
 import EmployerJobsPage from "./pages/employer/jobs";
 import CandidatesPage from "./pages/employer/candidates";
+import ApplicantsPage from "./pages/employer/applicants";
+import ShortlistedApplicantsPage from "./pages/employer/shortlisted";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -102,6 +104,22 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRole="employer">
                   <CandidatesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/applicants"
+              element={
+                <ProtectedRoute allowedRole="employer">
+                  <ApplicantsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/shortlisted"
+              element={
+                <ProtectedRoute allowedRole="employer">
+                  <ShortlistedApplicantsPage />
                 </ProtectedRoute>
               }
             />
