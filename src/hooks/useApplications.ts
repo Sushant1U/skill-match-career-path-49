@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Application, Student } from "@/types";
@@ -14,7 +13,7 @@ export const useApplications = (userId?: string) => {
       
       console.log("Fetching applications for employer:", userId);
       
-      // First get all jobs posted by this employer
+      // Get all jobs posted by this employer
       const { data: jobs, error: jobsError } = await supabase
         .from('jobs')
         .select('id, title, company')
@@ -38,87 +37,56 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Fetch applications for these jobs
+      // Fetch applications with student profiles in a single query
       const { data: applications, error: applicationsError } = await supabase
         .from('applications')
-        .select('*')
+        .select(`
+          *,
+          student:profiles(*)
+        `)
         .in('job_id', jobIds)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
       
       if (applicationsError) {
         console.error("Error fetching applications:", applicationsError);
         throw applicationsError;
       }
       
-      if (!applications || applications.length === 0) {
+      if (!applications) {
         console.log("No applications found");
         return [];
       }
       
-      // Now collect all student IDs to fetch their profiles
-      const studentIds = applications
-        .map(app => app.student_id)
-        .filter(Boolean) as string[];
+      console.log("Raw applications data:", applications);
       
-      console.log("Student IDs to fetch:", studentIds);
-      
-      // Fetch all relevant student profiles in one query
-      let studentProfiles: Record<string, any> = {};
-      
-      if (studentIds.length > 0) {
-        // Important: This is the key query - make sure we get all profile data
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', studentIds);
-          
-        if (profilesError) {
-          console.error("Error fetching student profiles:", profilesError);
-        } else if (profiles) {
-          console.log("Fetched student profiles:", profiles);
-          
-          // Create a map of student ID to profile data for easy lookup
-          studentProfiles = profiles.reduce((acc, profile) => {
-            acc[profile.id] = profile;
-            return acc;
-          }, {} as Record<string, any>);
+      // Format the applications data for the UI
+      return applications.map(app => ({
+        id: app.id,
+        jobId: app.job_id,
+        studentId: app.student_id,
+        status: app.status,
+        createdAt: app.created_at,
+        resumeUrl: app.resume_url || (app.student?.resume_url || ''),
+        jobTitle: jobDetailsMap[app.job_id]?.title,
+        jobCompany: jobDetailsMap[app.job_id]?.company,
+        student: app.student ? {
+          id: app.student.id,
+          name: app.student.name || 'Anonymous',
+          email: app.student.email || '',
+          skills: app.student.skills || [],
+          location: app.student.location || 'Unknown location',
+          resumeUrl: app.student.resume_url || '',
+          qualifications: app.student.qualifications || []
+        } : {
+          id: app.student_id || '',
+          name: 'Anonymous',
+          email: '',
+          skills: [],
+          location: 'Unknown location',
+          resumeUrl: '',
+          qualifications: []
         }
-      }
-      
-      // Format the data for consumption by the UI
-      return applications.map(app => {
-        const studentProfile = studentProfiles[app.student_id || ''] || null;
-        console.log("Student profile for application:", app.id, studentProfile);
-        
-        return {
-          id: app.id,
-          jobId: app.job_id,
-          studentId: app.student_id,
-          status: app.status,
-          createdAt: app.created_at,
-          resumeUrl: app.resume_url || (studentProfile?.resume_url || ''),
-          jobTitle: jobDetailsMap[app.job_id]?.title,
-          jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: studentProfile ? {
-            id: studentProfile.id,
-            name: studentProfile.name || 'Anonymous',
-            email: studentProfile.email || '',
-            skills: studentProfile.skills || [],
-            location: studentProfile.location || 'Unknown location',
-            resumeUrl: studentProfile.resume_url || '',
-            qualifications: studentProfile.qualifications || []
-          } : {
-            id: app.student_id || '',
-            name: 'Anonymous',
-            email: '',
-            skills: [],
-            location: 'Unknown location',
-            resumeUrl: '',
-            qualifications: []
-          }
-        };
-      });
+      }));
     },
     refetchInterval: 30000,
     enabled: !!userId
