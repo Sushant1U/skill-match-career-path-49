@@ -73,7 +73,11 @@ export default function ShortlistedApplicantsPage() {
         }
         
         // Now collect all student IDs to fetch their profiles
-        const studentIds = applications.map(app => app.student_id).filter(Boolean);
+        const studentIds = applications
+          .map(app => app.student_id)
+          .filter(Boolean) as string[];
+        
+        console.log("Student IDs for shortlisted:", studentIds);
         
         // Fetch all relevant student profiles in one query
         let studentProfiles: Record<string, any> = {};
@@ -87,7 +91,9 @@ export default function ShortlistedApplicantsPage() {
           if (profilesError) {
             console.error("Error fetching student profiles:", profilesError);
             // Don't throw, just continue with empty profiles
-          } else if (profiles) {
+          } else if (profiles && profiles.length > 0) {
+            console.log("Fetched student profiles for shortlisted:", profiles);
+            
             // Create a map of student ID to profile data
             studentProfiles = profiles.reduce((acc, profile) => {
               acc[profile.id] = profile;
@@ -101,6 +107,7 @@ export default function ShortlistedApplicantsPage() {
         // Format the data for consumption by the UI
         const formattedApplications = applications.map(app => {
           const studentProfile = studentProfiles[app.student_id || ''];
+          console.log("Processing shortlisted application for student:", app.student_id, "Found profile:", !!studentProfile);
           
           return {
             id: app.id,

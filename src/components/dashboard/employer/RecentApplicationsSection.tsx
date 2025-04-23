@@ -29,12 +29,34 @@ export function RecentApplicationsSection() {
           queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
           queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
           queryClient.invalidateQueries({ queryKey: ['employer-shortlisted-count'] });
+          
+          // Also invalidate profiles queries to ensure fresh data
+          queryClient.invalidateQueries({ queryKey: ['profiles'] });
+        }
+      )
+      .subscribe();
+
+    // Also set up a subscription for profile changes
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Profile update received:', payload);
+          queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+          queryClient.invalidateQueries({ queryKey: ['profiles'] });
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(profilesChannel);
     };
   }, [queryClient]);
 

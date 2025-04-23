@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,30 +10,25 @@ export function useResumeStorage() {
       try {
         console.log("Checking if 'resumes' bucket exists...");
         
-        // Try to get bucket information directly
-        const { data: bucketInfo, error: bucketError } = await supabase
+        // Try to list from the bucket as a quick check if it exists
+        const { data, error } = await supabase
           .storage
-          .getBucket('resumes');
+          .from('resumes')
+          .list('', { limit: 1 });
           
-        if (!bucketError && bucketInfo) {
-          console.log("Resumes bucket exists:", bucketInfo);
+        if (!error) {
+          console.log("Resumes bucket exists, found items:", data);
           setBucketExists(true);
           setIsChecking(false);
           return;
         }
         
-        if (bucketError) {
-          console.log("Bucket error response:", bucketError);
-          
-          // If error is not "bucket not found", log and exit with error
-          if (!bucketError.message.includes('The resource was not found')) {
-            console.error("Error checking bucket:", bucketError);
-            setBucketExists(false);
-            setIsChecking(false);
-            return;
-          }
-          
-          // If we get here, bucket doesn't exist, so create it
+        // If we get an error, check if it's because the bucket doesn't exist
+        console.log("Bucket error response:", error);
+        
+        if (error.message.includes('The resource was not found') || 
+            error.code === '404') {
+          // Bucket doesn't exist, create it
           console.log("Resumes bucket does not exist. Creating it...");
           const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
             public: true,
@@ -48,6 +42,10 @@ export function useResumeStorage() {
             console.log("Bucket created successfully:", createData);
             setBucketExists(true);
           }
+        } else {
+          // Other error occurred
+          console.error("Error checking bucket:", error);
+          setBucketExists(false);
         }
       } catch (error) {
         console.error("Exception during bucket check or creation:", error);

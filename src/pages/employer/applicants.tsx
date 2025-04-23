@@ -69,12 +69,17 @@ export default function ApplicantsPage() {
         }
         
         // Now collect all student IDs to fetch their profiles
-        const studentIds = applications.map(app => app.student_id).filter(Boolean);
+        const studentIds = applications
+          .map(app => app.student_id)
+          .filter(Boolean) as string[];
+        
+        console.log("Student IDs to fetch:", studentIds);
         
         // Fetch all relevant student profiles in one query
         let studentProfiles: Record<string, any> = {};
         
         if (studentIds.length > 0) {
+          // Important change: Use this specific query to get profiles
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('*')
@@ -83,7 +88,9 @@ export default function ApplicantsPage() {
           if (profilesError) {
             console.error("Error fetching student profiles:", profilesError);
             // Don't throw, just continue with empty profiles
-          } else if (profiles) {
+          } else if (profiles && profiles.length > 0) {
+            console.log("Fetched student profiles:", profiles);
+            
             // Create a map of student ID to profile data
             studentProfiles = profiles.reduce((acc, profile) => {
               acc[profile.id] = profile;
@@ -97,6 +104,7 @@ export default function ApplicantsPage() {
         // Format the data for consumption by the UI
         const formattedApplications = applications.map(app => {
           const studentProfile = studentProfiles[app.student_id || ''];
+          console.log("Processing application for student:", app.student_id, "Found profile:", !!studentProfile);
           
           return {
             id: app.id,

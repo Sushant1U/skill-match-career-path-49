@@ -38,7 +38,7 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // First fetch all applications for these jobs
+      // Fetch applications for these jobs
       const { data: applications, error: applicationsError } = await supabase
         .from('applications')
         .select('*')
@@ -57,12 +57,17 @@ export const useApplications = (userId?: string) => {
       }
       
       // Now collect all student IDs to fetch their profiles
-      const studentIds = applications.map(app => app.student_id).filter(Boolean);
+      const studentIds = applications
+        .map(app => app.student_id)
+        .filter(Boolean) as string[];
+      
+      console.log("Student IDs to fetch:", studentIds);
       
       // Fetch all relevant student profiles in one query
       let studentProfiles: Record<string, any> = {};
       
       if (studentIds.length > 0) {
+        // Important: This is the key query - make sure we get all profile data
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
@@ -70,21 +75,21 @@ export const useApplications = (userId?: string) => {
           
         if (profilesError) {
           console.error("Error fetching student profiles:", profilesError);
-          // Don't throw, just continue with empty profiles
         } else if (profiles) {
-          // Create a map of student ID to profile data
+          console.log("Fetched student profiles:", profiles);
+          
+          // Create a map of student ID to profile data for easy lookup
           studentProfiles = profiles.reduce((acc, profile) => {
             acc[profile.id] = profile;
             return acc;
           }, {} as Record<string, any>);
-          
-          console.log("Fetched student profiles:", profiles.length);
         }
       }
       
       // Format the data for consumption by the UI
       return applications.map(app => {
-        const studentProfile = studentProfiles[app.student_id || ''];
+        const studentProfile = studentProfiles[app.student_id || ''] || null;
+        console.log("Student profile for application:", app.id, studentProfile);
         
         return {
           id: app.id,
