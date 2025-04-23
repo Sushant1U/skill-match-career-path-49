@@ -4,6 +4,7 @@ import { Briefcase, Users, BarChart3 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/sonner';
 
 export function DashboardStats() {
   const { user } = useAuth();
@@ -25,14 +26,15 @@ export function DashboardStats() {
       // Get total applications
       let applicationsCount = 0;
       try {
-        // Need to use a more generic approach for RPC calls
+        // Use a properly typed approach for RPC calls
         const { data, error } = await supabase.rpc(
           'get_employer_applications_count', 
-          { employer_id: user.id }
+          { employer_id: user.id },
+          { count: 'exact' } // Add options to help TypeScript infer the correct return type
         );
         
         if (error) throw error;
-        applicationsCount = Number(data) || 0;
+        applicationsCount = data !== null ? Number(data) : 0;
       } catch (error) {
         console.error('Error fetching applications count:', error);
         // Fallback: query applications through jobs
@@ -52,14 +54,15 @@ export function DashboardStats() {
       // Get response rate (non-pending applications / total applications)
       let respondedCount = 0;
       try {
-        // Need to use a more generic approach for RPC calls
+        // Use a properly typed approach for RPC calls
         const { data, error } = await supabase.rpc(
           'get_employer_responded_applications_count', 
-          { employer_id: user.id }
+          { employer_id: user.id },
+          { count: 'exact' } // Add options to help TypeScript infer the correct return type
         );
         
         if (error) throw error;
-        respondedCount = Number(data) || 0;
+        respondedCount = data !== null ? Number(data) : 0;
       } catch (error) {
         console.error('Error fetching responded applications count:', error);
         // Fallback: query responded applications through jobs
