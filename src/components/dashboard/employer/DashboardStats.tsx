@@ -23,11 +23,12 @@ export function DashboardStats() {
       if (jobsError) throw jobsError;
       
       // Get total applications
+      // Explicitly type the response to avoid TypeScript errors
+      type RPCResponse = { data: number | null; error: any };
+      
+      // Use the correct typing for RPC calls
       const { data: applicationsData, error: applicationsError } = await supabase
-        .rpc('get_employer_applications_count', { employer_id: user.id }) as unknown as { 
-          data: number | null; 
-          error: any;
-        };
+        .rpc('get_employer_applications_count', { employer_id: user.id }) as unknown as RPCResponse;
       
       // If the RPC doesn't exist, fallback to a regular query
       let applicationsCount = 0;
@@ -52,10 +53,7 @@ export function DashboardStats() {
       
       // Get response rate (non-pending applications / total applications)
       const { data: respondedData, error: respondedError } = await supabase
-        .rpc('get_employer_responded_applications_count', { employer_id: user.id }) as unknown as {
-          data: number | null;
-          error: any;
-        };
+        .rpc('get_employer_responded_applications_count', { employer_id: user.id }) as unknown as RPCResponse;
       
       let respondedCount = 0;
       if (respondedError) {
