@@ -48,7 +48,7 @@ export function ApplicationCard({
       case 'rejected':
         return 'destructive';
       case 'interviewed':
-        return 'success';
+        return 'secondary';  // Changed from 'success' to 'secondary' to match available variants
       default:
         return 'secondary';
     }

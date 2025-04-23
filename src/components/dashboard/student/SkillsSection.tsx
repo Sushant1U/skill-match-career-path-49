@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { GraduationCap, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { SkillAnalysisResult } from '@/types';
 
 export function SkillsSection() {
   const { user } = useAuth();
@@ -32,12 +33,18 @@ export function SkillsSection() {
 
   const skills = profile?.skills || [];
   const hasSkillData = !!profile?.skill_analysis;
-  const skillAnalysis = profile?.skill_analysis || {
-    score: 0,
-    strengths: [],
-    weaknesses: [],
-    recommendations: []
-  };
+  
+  // Parse skill_analysis as SkillAnalysisResult or use default values
+  const skillAnalysis: SkillAnalysisResult = profile?.skill_analysis 
+    ? (typeof profile.skill_analysis === 'string' 
+        ? JSON.parse(profile.skill_analysis) 
+        : profile.skill_analysis as SkillAnalysisResult)
+    : {
+        score: 0,
+        strengths: [],
+        weaknesses: [],
+        recommendations: []
+      };
 
   return (
     <DashboardCard 

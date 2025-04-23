@@ -43,7 +43,8 @@ export function DashboardStats() {
           }
         }
       } else {
-        applicationsCount = applicationsData || 0;
+        // Ensure applicationsData is treated as a number
+        applicationsCount = typeof applicationsData === 'number' ? applicationsData : 0;
       }
       
       // Get response rate (non-pending applications / total applications)
@@ -67,7 +68,8 @@ export function DashboardStats() {
           }
         }
       } else {
-        respondedCount = respondedData || 0;
+        // Ensure respondedData is treated as a number
+        respondedCount = typeof respondedData === 'number' ? respondedData : 0;
       }
       
       return {
