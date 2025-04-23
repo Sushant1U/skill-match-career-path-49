@@ -14,6 +14,7 @@ export type Database = {
           created_at: string | null
           id: string
           job_id: string | null
+          resume_url: string | null
           status: string
           student_id: string | null
           updated_at: string | null
@@ -22,6 +23,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           job_id?: string | null
+          resume_url?: string | null
           status?: string
           student_id?: string | null
           updated_at?: string | null
@@ -30,6 +32,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           job_id?: string | null
+          resume_url?: string | null
           status?: string
           student_id?: string | null
           updated_at?: string | null
@@ -97,25 +100,31 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          link_url: string | null
           message: string
           read: boolean | null
           title: string
+          type: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          link_url?: string | null
           message: string
           read?: boolean | null
           title: string
+          type?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          link_url?: string | null
           message?: string
           read?: boolean | null
           title?: string
+          type?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -130,6 +139,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           company_description: string | null
           company_name: string | null
           created_at: string | null
@@ -142,10 +152,14 @@ export type Database = {
           qualifications: string[] | null
           resume_url: string | null
           role: string
+          skill_analysis: Json | null
+          skill_proficiency: Json | null
+          skill_score: number | null
           skills: string[] | null
           updated_at: string | null
         }
         Insert: {
+          bio?: string | null
           company_description?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -158,10 +172,14 @@ export type Database = {
           qualifications?: string[] | null
           resume_url?: string | null
           role: string
+          skill_analysis?: Json | null
+          skill_proficiency?: Json | null
+          skill_score?: number | null
           skills?: string[] | null
           updated_at?: string | null
         }
         Update: {
+          bio?: string | null
           company_description?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -174,6 +192,9 @@ export type Database = {
           qualifications?: string[] | null
           resume_url?: string | null
           role?: string
+          skill_analysis?: Json | null
+          skill_proficiency?: Json | null
+          skill_score?: number | null
           skills?: string[] | null
           updated_at?: string | null
         }

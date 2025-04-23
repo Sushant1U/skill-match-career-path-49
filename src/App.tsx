@@ -111,7 +111,7 @@ const App = () => (
             <Route
               path="/notifications"
               element={
-                <ProtectedRoute allowedRole={["student", "employer"]}>
+                <ProtectedRoute allowedRole={["student", "employer"] as any}>
                   <NotificationsPage />
                 </ProtectedRoute>
               }
@@ -119,7 +119,7 @@ const App = () => (
             <Route
               path="/profile/edit"
               element={
-                <ProtectedRoute allowedRole={["student", "employer"]}>
+                <ProtectedRoute allowedRole={["student", "employer"] as any}>
                   <ProfileEditPage />
                 </ProtectedRoute>
               }

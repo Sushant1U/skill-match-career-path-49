@@ -1,5 +1,5 @@
 
-export type UserRole = 'student' | 'employer';
+export type UserRole = 'student' | 'employer' | string[];
 
 export interface User {
   id: string;
@@ -43,7 +43,7 @@ export interface Application {
   id: string;
   jobId: string;
   studentId: string;
-  status: 'pending' | 'shortlisted' | 'rejected' | 'accepted';
+  status: 'pending' | 'shortlisted' | 'rejected' | 'accepted' | string;
   createdAt: string;
   resumeUrl?: string;
 }

@@ -6,7 +6,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: UserRole;
+  allowedRole?: UserRole | UserRole[];
 }
 
 const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
@@ -31,19 +31,24 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
   }
 
   // If role check is required and user doesn't have the allowed role
-  if (allowedRole && userRole !== allowedRole) {
-    console.log(`User role (${userRole}) doesn't match required role (${allowedRole}), redirecting`);
+  if (allowedRole) {
+    // Handle both single role and array of roles
+    const roles = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
     
-    // Redirect to appropriate dashboard based on role
-    if (userRole === 'student') {
-      return <Navigate to="/student-dashboard" replace />;
+    if (!roles.includes(userRole as string)) {
+      console.log(`User role (${userRole}) doesn't match required role (${allowedRole}), redirecting`);
+      
+      // Redirect to appropriate dashboard based on role
+      if (userRole === 'student') {
+        return <Navigate to="/student-dashboard" replace />;
+      }
+      if (userRole === 'employer') {
+        return <Navigate to="/employer-dashboard" replace />;
+      }
+      
+      // Fallback to login if role is unknown
+      return <Navigate to="/login" replace />;
     }
-    if (userRole === 'employer') {
-      return <Navigate to="/employer-dashboard" replace />;
-    }
-    
-    // Fallback to login if role is unknown
-    return <Navigate to="/login" replace />;
   }
 
   console.log("Access granted to protected route");
