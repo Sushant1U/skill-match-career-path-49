@@ -5,7 +5,10 @@ import { Application, Notification, Student } from '@/types';
 export async function fetchApplicationsForEmployer(jobId?: string, limit?: number): Promise<Application[]> {
   let query = supabase
     .from('applications')
-    .select('*')
+    .select(`
+      *,
+      student:profiles(id, name, email, location, bio, skills, qualifications, resume_url, skillScore)
+    `)
     .order('created_at', { ascending: false });
   
   if (jobId) {
@@ -29,7 +32,18 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
     studentId: app.student_id,
     status: app.status,
     createdAt: app.created_at,
-    resumeUrl: app.resume_url
+    resumeUrl: app.resume_url || app.student?.resume_url,
+    student: app.student ? {
+      id: app.student.id,
+      name: app.student.name || 'Unknown',
+      email: app.student.email || '',
+      location: app.student.location || 'No location set',
+      bio: app.student.bio,
+      skills: app.student.skills || [],
+      qualifications: app.student.qualifications || [],
+      resumeUrl: app.student.resume_url,
+      skillScore: app.student.skillScore
+    } : undefined
   }));
 }
 

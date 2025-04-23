@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Check, X, Mail } from "lucide-react";
@@ -111,12 +112,34 @@ export function RecentApplicationsSection() {
     }
   });
 
+  const deleteApplicationMutation = useMutation({
+    mutationFn: async (applicationId: string) => {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', applicationId);
+      
+      if (error) throw error;
+      return applicationId;
+    },
+    onSuccess: (applicationId) => {
+      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
+      toast.success('Application rejected and removed');
+    },
+    onError: (error) => {
+      console.error('Error deleting application:', error);
+      toast.error('Failed to reject application');
+    }
+  });
+
   const handleShortlist = (applicationId: string) => {
     updateStatusMutation.mutate({ applicationId, status: 'shortlisted' });
   };
 
   const handleReject = (applicationId: string) => {
-    updateStatusMutation.mutate({ applicationId, status: 'rejected' });
+    // Delete the application instead of just updating its status
+    deleteApplicationMutation.mutate(applicationId);
   };
 
   const handleContactStudent = (studentId: string) => {
@@ -175,7 +198,7 @@ export function RecentApplicationsSection() {
                     disabled={application.status === 'rejected'}
                   >
                     <X className="h-4 w-4 mr-1" />
-                    {application.status === 'rejected' ? 'Rejected' : 'Reject'}
+                    Reject
                   </Button>
                 </div>
               </div>
@@ -225,10 +248,9 @@ export function RecentApplicationsSection() {
                 <Button 
                   size="sm" 
                   onClick={() => handleContactStudent(application.studentId)}
-                  disabled={application.status === 'contacted'}
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  {application.status === 'contacted' ? 'Contacted' : 'Contact'}
+                  Contact
                 </Button>
               </div>
             </div>
