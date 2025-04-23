@@ -1,8 +1,11 @@
 
 import { Application, Student } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Check, X, Mail } from "lucide-react";
+import { Check, X, Mail, FileText } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { useState } from "react";
+import { ResumePreviewDialog } from "@/components/dashboard/student/ResumePreviewDialog";
+import { useNavigate } from "react-router-dom";
 
 interface ApplicationItemProps {
   application: Application & {
@@ -19,12 +22,19 @@ export const ApplicationItem = ({
   onShortlist,
   onReject
 }: ApplicationItemProps) => {
+  const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
   const handleContactStudent = () => {
     if (application.student?.email) {
       window.location.href = `mailto:${application.student.email}?subject=Regarding your job application`;
     } else {
       toast.error('Unable to contact student. Email not available.');
     }
+  };
+
+  const handleViewShortlisted = () => {
+    navigate('/employer/shortlisted');
   };
 
   return (
@@ -89,14 +99,14 @@ export const ApplicationItem = ({
 
       <div className="flex justify-between mt-4 pt-3 border-t border-gray-100">
         {application.student?.resumeUrl ? (
-          <a 
-            href={application.student.resumeUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          <Button 
+            variant="link" 
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline p-0"
+            onClick={() => setIsResumeDialogOpen(true)}
           >
+            <FileText className="mr-2 h-4 w-4" />
             View Resume
-          </a>
+          </Button>
         ) : (
           <span className="text-sm text-gray-400">No resume available</span>
         )}
@@ -109,6 +119,14 @@ export const ApplicationItem = ({
           Contact
         </Button>
       </div>
+
+      {application.student?.resumeUrl && (
+        <ResumePreviewDialog
+          isOpen={isResumeDialogOpen}
+          onClose={() => setIsResumeDialogOpen(false)}
+          resumeUrl={application.student.resumeUrl}
+        />
+      )}
     </div>
   );
-};
+}

@@ -41,7 +41,7 @@ export const useApplications = (userId?: string) => {
         student: app.student ? {
           id: app.student.id,
           name: app.student.name || 'Anonymous',
-          email: app.student.email,
+          email: app.student.email, // Ensure email is included
           skills: app.student.skills || [],
           location: app.student.location || 'Location not specified',
           resumeUrl: app.student.resume_url

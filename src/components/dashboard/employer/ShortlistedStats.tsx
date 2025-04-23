@@ -4,9 +4,11 @@ import { Users } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import { useNavigate } from 'react-router-dom';
 
 export function ShortlistedStats() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const { data: shortlistedCount = 0, isLoading } = useQuery({
     queryKey: ['employer-shortlisted-count', user?.id],
@@ -39,6 +41,10 @@ export function ShortlistedStats() {
     refetchInterval: 30000
   });
 
+  const handleClick = () => {
+    navigate('/employer/shortlisted');
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -56,7 +62,7 @@ export function ShortlistedStats() {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow" onClick={handleClick}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">Shortlisted</p>
