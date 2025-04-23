@@ -26,14 +26,18 @@ export function DashboardStats() {
       // Explicitly type the response to avoid TypeScript errors
       type RPCResponse = { data: number | null; error: any };
       
-      // Use the correct typing for RPC calls
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .rpc('get_employer_applications_count', { employer_id: user.id }) as unknown as RPCResponse;
-      
-      // If the RPC doesn't exist, fallback to a regular query
+      // Need to specify the return type explicitly to handle RPC call properly
       let applicationsCount = 0;
-      if (applicationsError) {
-        console.error('Error fetching applications count:', applicationsError);
+      try {
+        // Use a type assertion that doesn't rely on the RPC method name
+        const response = await supabase.rpc('get_employer_applications_count', { 
+          employer_id: user.id 
+        });
+        
+        // Convert the data to a number (if it exists) or default to 0
+        applicationsCount = typeof response.data === 'number' ? response.data : 0;
+      } catch (error) {
+        console.error('Error fetching applications count:', error);
         // Fallback: query applications through jobs
         const jobIds = jobsData?.map(job => job.id) || [];
         if (jobIds.length > 0) {
@@ -46,18 +50,20 @@ export function DashboardStats() {
             applicationsCount = data?.length || 0;
           }
         }
-      } else {
-        // Ensure applicationsData is treated as a number
-        applicationsCount = typeof applicationsData === 'number' ? applicationsData : 0;
       }
       
       // Get response rate (non-pending applications / total applications)
-      const { data: respondedData, error: respondedError } = await supabase
-        .rpc('get_employer_responded_applications_count', { employer_id: user.id }) as unknown as RPCResponse;
-      
       let respondedCount = 0;
-      if (respondedError) {
-        console.error('Error fetching responded applications count:', respondedError);
+      try {
+        // Use a type assertion that doesn't rely on the RPC method name
+        const response = await supabase.rpc('get_employer_responded_applications_count', { 
+          employer_id: user.id 
+        });
+        
+        // Convert the data to a number (if it exists) or default to 0
+        respondedCount = typeof response.data === 'number' ? response.data : 0;
+      } catch (error) {
+        console.error('Error fetching responded applications count:', error);
         // Fallback: query responded applications through jobs
         const jobIds = jobsData?.map(job => job.id) || [];
         if (jobIds.length > 0) {
@@ -71,9 +77,6 @@ export function DashboardStats() {
             respondedCount = data?.length || 0;
           }
         }
-      } else {
-        // Ensure respondedData is treated as a number
-        respondedCount = typeof respondedData === 'number' ? respondedData : 0;
       }
       
       return {
