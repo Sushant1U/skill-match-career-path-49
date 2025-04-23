@@ -1,3 +1,4 @@
+
 export type UserRole = 'student' | 'employer' | 'admin';
 
 export interface User {
@@ -5,6 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  // Add any other properties needed
 }
 
 export interface Skill {
@@ -55,6 +57,7 @@ export interface Employer {
   industry: string;
 }
 
+// Renamed to AppNotification to avoid conflict with browser's Notification API
 export interface Notification {
   id: string;
   userId: string;

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Bell } from 'lucide-react'; // Added Bell import
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
@@ -15,6 +15,7 @@ import { RecentApplicationsSection } from '@/components/dashboard/employer/Recen
 import { DashboardStats } from '@/components/dashboard/employer/DashboardStats';
 import { QuickActions } from '@/components/dashboard/employer/QuickActions';
 import { CompanyProfileCard } from '@/components/dashboard/employer/CompanyProfileCard';
+import { Notification } from '@/types'; // Import our custom Notification type
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -26,7 +27,8 @@ export default function EmployerDashboard() {
     queryKey: ['employer-notifications', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      return fetchNotificationsForUser(user.id, 5);
+      // Cast the returned notifications to our custom type
+      return fetchNotificationsForUser(user.id, 5) as Promise<Notification[]>;
     },
     enabled: !!user
   });
@@ -54,7 +56,7 @@ export default function EmployerDashboard() {
 
           <div className="space-y-6">
             <CompanyProfileCard 
-              user={user!}
+              user={user}
               company={user?.user_metadata?.company || ''}
               location={user?.user_metadata?.location || ''}
             />

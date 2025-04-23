@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Application, Student } from '@/types';
+import { Application, Student, Notification } from '@/types';
 
 export async function fetchApplicationsForEmployer(employerId: string, limit?: number): Promise<Application[]> {
   try {
@@ -88,6 +88,7 @@ export async function fetchNotificationsForUser(userId: string, limit?: number):
     
     if (error) throw error;
     
+    // Map the database results to our custom Notification type
     return (data || []).map(notification => ({
       id: notification.id,
       userId: notification.user_id,
@@ -95,7 +96,7 @@ export async function fetchNotificationsForUser(userId: string, limit?: number):
       message: notification.message,
       read: notification.read,
       createdAt: notification.created_at,
-    }));
+    })) as unknown as Notification[];
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return [];

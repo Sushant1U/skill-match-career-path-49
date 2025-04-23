@@ -6,13 +6,17 @@ import { User } from "@/types";
 import { useNavigate } from "react-router-dom";
 
 interface CompanyProfileCardProps {
-  user: User;
+  user: User | any; // Allow for Supabase user type
   company: string;
   location: string;
 }
 
 export function CompanyProfileCard({ user, company, location }: CompanyProfileCardProps) {
   const navigate = useNavigate();
+
+  // Safely access user metadata
+  const userData = user || {};
+  const userMeta = (userData as any).user_metadata || {};
 
   return (
     <DashboardCard 
@@ -26,9 +30,9 @@ export function CompanyProfileCard({ user, company, location }: CompanyProfileCa
           <Building size={36} />
         </div>
         <h3 className="font-medium text-lg">
-          {company || user?.user_metadata?.name || 'Your Company'}
+          {company || userMeta.name || 'Your Company'}
         </h3>
-        <p className="text-gray-500">{user?.user_metadata?.industry || 'Technology'}</p>
+        <p className="text-gray-500">{userMeta.industry || 'Technology'}</p>
         <p className="text-gray-500 text-sm mt-1">{location || 'No location set'}</p>
       </div>
       <div className="space-y-2 mt-4 text-sm">
