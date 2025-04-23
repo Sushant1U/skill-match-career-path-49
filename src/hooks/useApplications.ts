@@ -38,81 +38,50 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // CRITICAL FIX: Perform two separate queries for better reliability
-      // 1. First fetch all applications for these jobs
-      const { data: applicationsData, error: applicationsError } = await supabase
+      // First fetch all applications
+      const { data: applications, error: applicationsError } = await supabase
         .from('applications')
-        .select('*')
-        .in('job_id', jobIds)
-        .order('created_at', { ascending: false });
+        .select(`
+          *,
+          student:profiles(
+            id, 
+            name, 
+            email, 
+            location, 
+            bio, 
+            skills,
+            resume_url
+          )
+        `)
+        .in('job_id', jobIds);
       
       if (applicationsError) {
         console.error("Error fetching applications:", applicationsError);
         throw applicationsError;
       }
       
-      if (!applicationsData || applicationsData.length === 0) {
-        console.log("No applications found");
-        return [];
-      }
-
-      console.log("Raw applications data before student fetch:", applicationsData);
-      
-      // 2. Then fetch all student profiles separately using the student_ids
-      const studentIds = applicationsData.map(app => app.student_id).filter(Boolean);
-      
-      console.log("Student IDs to fetch:", studentIds);
-      
-      const { data: studentProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', studentIds);
-      
-      if (profilesError) {
-        console.error("Error fetching student profiles:", profilesError);
-        // Continue with what we have
-      }
-      
-      console.log("Fetched student profiles:", studentProfiles);
-      
-      // Create a map for quick lookup
-      const profilesMap = (studentProfiles || []).reduce((map, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {} as Record<string, any>);
+      console.log("Raw applications with student data:", applications);
       
       // Format the applications data for the UI
-      return applicationsData.map(app => {
-        const studentProfile = profilesMap[app.student_id];
-        
-        console.log(`Processing application ${app.id}:`, {
-          applicationResumeUrl: app.resume_url,
-          studentId: app.student_id,
-          studentProfile: studentProfile ? "Found" : "Not found",
-          studentResumeUrl: studentProfile?.resume_url || null
-        });
-        
-        return {
-          id: app.id,
-          jobId: app.job_id,
-          studentId: app.student_id,
-          status: app.status,
-          createdAt: app.created_at,
-          // Explicitly prioritize resume URLs
-          resumeUrl: app.resume_url || (studentProfile?.resume_url || null),
-          jobTitle: jobDetailsMap[app.job_id]?.title,
-          jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: studentProfile ? {
-            id: studentProfile.id,
-            name: studentProfile.name || 'Anonymous',
-            email: studentProfile.email || '',
-            skills: studentProfile.skills || [],
-            location: studentProfile.location || 'Unknown location',
-            resumeUrl: studentProfile.resume_url || '',
-            qualifications: studentProfile.qualifications || []
-          } : null
-        };
-      });
+      return applications.map(app => ({
+        id: app.id,
+        jobId: app.job_id,
+        studentId: app.student_id,
+        status: app.status,
+        createdAt: app.created_at,
+        resumeUrl: app.resume_url || (app.student?.resume_url || null),
+        jobTitle: jobDetailsMap[app.job_id]?.title,
+        jobCompany: jobDetailsMap[app.job_id]?.company,
+        student: app.student ? {
+          id: app.student.id,
+          name: app.student.name || 'Anonymous',
+          email: app.student.email || '',
+          skills: app.student.skills || [],
+          location: app.student.location || 'Unknown location',
+          resumeUrl: app.student.resume_url || '',
+          qualifications: []
+        } : null
+      }));
     },
     refetchInterval: 30000,
     enabled: !!userId
@@ -122,10 +91,7 @@ export const useApplications = (userId?: string) => {
     mutationFn: async ({ applicationId, status }: { applicationId: string; status: string }) => {
       const { error } = await supabase
         .from('applications')
-        .update({ 
-          status, 
-          updated_at: new Date().toISOString() 
-        })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq('id', applicationId);
       
       if (error) throw error;

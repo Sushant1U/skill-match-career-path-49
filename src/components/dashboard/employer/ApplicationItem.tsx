@@ -37,7 +37,9 @@ export const ApplicationItem = ({
   const handleContactStudent = () => {
     if (student?.email) {
       console.log("Contact student with email:", student.email);
-      window.location.href = `mailto:${student.email}?subject=Regarding your job application`;
+      // Open default email client with pre-filled subject
+      window.location.href = `mailto:${student.email}?subject=Regarding your application for ${application.jobTitle}&body=Dear ${student.name},`;
+      toast.success('Opening email client...');
     } else {
       console.error("Unable to contact student. Email not available.");
       toast.error('Unable to contact student. Email not available.');
@@ -138,11 +140,13 @@ export const ApplicationItem = ({
         
         <Button 
           size="sm" 
+          variant="outline"
           onClick={handleContactStudent}
           disabled={!student?.email}
+          className="border-blue-500 text-blue-600 hover:bg-blue-50"
         >
           <Mail className="mr-2 h-4 w-4" />
-          Contact
+          Contact via Email
         </Button>
       </div>
 
