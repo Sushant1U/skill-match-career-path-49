@@ -16,24 +16,24 @@ export function CompanyProfileCard({ user, company, location }: CompanyProfileCa
 
   // Safely access user metadata
   const userData = user || {};
-  const userMeta = (userData as any).user_metadata || {};
+  const userMeta = userData.user_metadata || userData.metadata || {};
 
   return (
     <DashboardCard 
       title="Company Profile" 
       icon={<Building size={20} />}
       linkText="Edit"
-      linkUrl="/employer/profile/edit"
+      linkUrl="/profile/edit"
     >
       <div className="text-center py-4">
         <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-4">
           <Building size={36} />
         </div>
         <h3 className="font-medium text-lg">
-          {company || userMeta.name || 'Your Company'}
+          {company || userMeta.company || userMeta.name || 'Your Company'}
         </h3>
         <p className="text-gray-500">{userMeta.industry || 'Technology'}</p>
-        <p className="text-gray-500 text-sm mt-1">{location || 'No location set'}</p>
+        <p className="text-gray-500 text-sm mt-1">{location || userMeta.location || 'No location set'}</p>
       </div>
       <div className="space-y-2 mt-4 text-sm">
         <div className="flex justify-between">
@@ -47,7 +47,7 @@ export function CompanyProfileCard({ user, company, location }: CompanyProfileCa
       <Button 
         className="w-full mt-4" 
         variant="outline" 
-        onClick={() => navigate('/employer/profile')}
+        onClick={() => navigate('/profile')}
       >
         <Eye className="mr-2 h-4 w-4" />
         View Public Profile

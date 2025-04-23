@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Bell } from 'lucide-react'; // Added Bell import
+import { Plus, Bell } from 'lucide-react'; 
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
@@ -9,13 +9,14 @@ import { Footer } from '@/components/layout/Footer';
 import { NotificationList } from '@/components/dashboard/NotificationList';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchNotificationsForUser } from '@/services/applications';
+import { fetchNotificationsForUser, fetchApplicationsForEmployer } from '@/services/applications';
 import { JobPostingsSection } from '@/components/dashboard/employer/JobPostingsSection';
 import { RecentApplicationsSection } from '@/components/dashboard/employer/RecentApplicationsSection';
 import { DashboardStats } from '@/components/dashboard/employer/DashboardStats';
 import { QuickActions } from '@/components/dashboard/employer/QuickActions';
 import { CompanyProfileCard } from '@/components/dashboard/employer/CompanyProfileCard';
-import { Notification } from '@/types'; // Import our custom Notification type
+import { Notification, Job, Application } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -23,14 +24,54 @@ export default function EmployerDashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   // Fetch notifications
-  const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
+  const { data: notifications = [] } = useQuery({
     queryKey: ['employer-notifications', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Cast the returned notifications to our custom type
       return fetchNotificationsForUser(user.id, 5) as Promise<Notification[]>;
     },
     enabled: !!user
+  });
+
+  // Fetch jobs
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['employer-jobs', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('employer_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return (data || []).map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        skills: job.skills,
+        qualifications: job.qualifications,
+        employerId: job.employer_id,
+        status: job.status as 'active' | 'closed',
+        createdAt: job.created_at,
+        applications: job.applications_count
+      })) as Job[];
+    },
+    enabled: !!user?.id
+  });
+
+  // Fetch applications
+  const { data: applications = [] } = useQuery({
+    queryKey: ['employer-applications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return fetchApplicationsForEmployer(user.id, 10);
+    },
+    enabled: !!user?.id
   });
 
   return (
@@ -46,7 +87,7 @@ export default function EmployerDashboard() {
           </Button>
         </div>
 
-        <DashboardStats jobs={[]} applications={[]} />
+        <DashboardStats jobs={jobs} applications={applications} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -65,7 +106,7 @@ export default function EmployerDashboard() {
               title="Notifications" 
               icon={<Bell size={20} />}
               linkText="View All"
-              linkUrl="/employer/notifications"
+              linkUrl="/notifications"
             >
               <NotificationList 
                 notifications={notifications}

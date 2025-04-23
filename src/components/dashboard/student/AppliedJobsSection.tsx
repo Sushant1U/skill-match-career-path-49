@@ -4,37 +4,52 @@ import { JobCard } from '@/components/cards/JobCard';
 import { Briefcase } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Job } from '@/types';
+import { Spinner } from '@/components/ui/spinner';
 
 export function AppliedJobsSection() {
-  const { data: jobs, isLoading: jobsLoading, error: jobsError } = useQuery({
-    queryKey: ['jobs'],
+  const { user } = useAuth();
+
+  const { data: applications, isLoading: applicationsLoading } = useQuery({
+    queryKey: ['student-applications', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .from('applications')
+        .select(`
+          id,
+          job_id,
+          status,
+          created_at,
+          jobs:job_id (*)
+        `)
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(2);
       
       if (error) throw error;
       
-      return (data || []).map(job => ({
-        id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        description: job.description,
-        skills: job.skills,
-        qualifications: job.qualifications,
-        employerId: job.employer_id,
-        status: job.status as 'active' | 'closed',
-        createdAt: job.created_at,
-        applications: job.applications_count
-      })) as Job[];
-    }
+      return data || [];
+    },
+    enabled: !!user?.id
   });
 
-  const appliedJobs = jobs ? jobs.slice(0, 2) : [];
+  const appliedJobs = applications?.map(app => ({
+    id: app.jobs.id,
+    title: app.jobs.title,
+    company: app.jobs.company,
+    location: app.jobs.location,
+    description: app.jobs.description,
+    skills: app.jobs.skills,
+    qualifications: app.jobs.qualifications,
+    employerId: app.jobs.employer_id,
+    status: app.jobs.status as 'active' | 'closed',
+    createdAt: app.jobs.created_at,
+    applications: app.jobs.applications_count,
+    applicationStatus: app.status
+  })) || [];
 
   return (
     <DashboardCard 
@@ -44,10 +59,10 @@ export function AppliedJobsSection() {
       linkText="View All"
       linkUrl="/my-applications"
     >
-      {jobsLoading ? (
-        <div className="py-6 text-center">Loading jobs...</div>
-      ) : jobsError ? (
-        <div className="py-6 text-center text-red-500">Error loading jobs</div>
+      {applicationsLoading ? (
+        <div className="py-6 text-center">
+          <Spinner size="md" />
+        </div>
       ) : appliedJobs.length === 0 ? (
         <div className="py-6 text-center text-gray-500">No job applications yet</div>
       ) : (

@@ -1,44 +1,55 @@
 
+import { useEffect, useState } from 'react';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { NotificationList } from '@/components/dashboard/NotificationList';
 import { Bell } from 'lucide-react';
-import { useState } from 'react';
-import type { Notification } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchNotificationsForUser } from '@/services/applications';
+import { useQuery } from '@tanstack/react-query';
+import { Notification } from '@/types';
 
 export function NotificationsSection() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      userId: '1',
-      title: 'Application Status Update',
-      message: 'Your application for Frontend Developer at Tech Co. has been reviewed.',
-      read: false,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      userId: '1',
-      title: 'New Job Match',
-      message: 'We found a new job matching your skills: Full Stack Developer at DevCorp.',
-      read: true,
-      createdAt: new Date(Date.now() - 86400000).toISOString()
-    }
-  ]);
+  const { user } = useAuth();
 
-  const markNotificationAsRead = (id: string) => {
-    setNotifications(
-      notifications.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+  const { data: notifications = [], isLoading, error } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return fetchNotificationsForUser(user.id, 3) as Promise<Notification[]>;
+    },
+    enabled: !!user?.id
+  });
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      const { error } = await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      }).then(res => res.json());
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
-    setNotifications(
-      notifications.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const { error } = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user?.id }),
+      }).then(res => res.json());
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   return (
@@ -48,12 +59,18 @@ export function NotificationsSection() {
       linkText="View All"
       linkUrl="/notifications"
     >
-      <NotificationList 
-        notifications={notifications}
-        onMarkAsRead={markNotificationAsRead}
-        onMarkAllAsRead={markAllNotificationsAsRead}
-        limit={3}
-      />
+      {isLoading ? (
+        <div className="py-6 text-center">Loading notifications...</div>
+      ) : error ? (
+        <div className="py-6 text-center text-red-500">Error loading notifications</div>
+      ) : (
+        <NotificationList 
+          notifications={notifications}
+          onMarkAsRead={markNotificationAsRead}
+          onMarkAllAsRead={markAllNotificationsAsRead}
+          limit={3}
+        />
+      )}
     </DashboardCard>
   );
 }

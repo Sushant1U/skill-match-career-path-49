@@ -15,7 +15,13 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import JobsPage from "./pages/jobs";
+import JobDetailsPage from "./pages/jobs/[id]";
 import NewJob from "./pages/new-job";
+import NotificationsPage from "./pages/notifications";
+import ProfileEditPage from "./pages/profile/edit";
+import SkillsAssessmentPage from "./pages/skills/assessment";
+import MyApplicationsPage from "./pages/my-applications";
+import RecommendedJobsPage from "./pages/jobs/recommended";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +36,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            
+            {/* Student Routes */}
             <Route
               path="/student-dashboard"
               element={
@@ -39,6 +47,32 @@ const App = () => (
               }
             />
             <Route
+              path="/skills/assessment"
+              element={
+                <ProtectedRoute allowedRole="student">
+                  <SkillsAssessmentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-applications"
+              element={
+                <ProtectedRoute allowedRole="student">
+                  <MyApplicationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/jobs/recommended"
+              element={
+                <ProtectedRoute allowedRole="student">
+                  <RecommendedJobsPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Employer Routes */}
+            <Route
               path="/employer-dashboard"
               element={
                 <ProtectedRoute allowedRole="employer">
@@ -46,7 +80,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/jobs" element={<JobsPage />} />
             <Route
               path="/new-job"
               element={
@@ -71,6 +104,27 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            
+            {/* Shared Routes */}
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/:id" element={<JobDetailsPage />} />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute allowedRole={["student", "employer"]}>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/edit"
+              element={
+                <ProtectedRoute allowedRole={["student", "employer"]}>
+                  <ProfileEditPage />
+                </ProtectedRoute>
+              }
+            />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
