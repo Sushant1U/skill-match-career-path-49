@@ -1,8 +1,10 @@
-
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
-import { User } from 'lucide-react';
+import { User, FileUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export function ProfileSection() {
   const { user } = useAuth();

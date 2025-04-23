@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from 'react';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { JobCard } from '@/components/cards/JobCard';
 import { Briefcase } from 'lucide-react';

@@ -1,8 +1,7 @@
-
+import React, { useState, useEffect } from 'react';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { SkillsList } from '@/components/dashboard/SkillsList';
 import { GraduationCap } from 'lucide-react';
-import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';

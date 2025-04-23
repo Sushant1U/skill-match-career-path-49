@@ -35,25 +35,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role from profiles table
           try {
-            setTimeout(async () => {
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
               
-              if (error) throw error;
-              setUserRole(data.role as UserRole);
-            }, 0);
+            if (error) throw error;
+            setUserRole(data.role as UserRole);
           } catch (error) {
             console.error('Error fetching user profile:', error);
           }
@@ -63,14 +59,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch user role from profiles table
-        supabase
+        return supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
@@ -81,6 +75,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
             setUserRole(data.role as UserRole);
+          })
+          .catch(error => {
+            console.error('Error in profile fetch:', error);
           })
           .finally(() => setLoading(false));
       } else {
@@ -110,7 +107,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       toast.success('Sign up successful! Please verify your email.');
       
-      // Redirect based on role
       if (role === 'student') {
         navigate('/student-dashboard');
       } else {
@@ -131,7 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // We'll get the role from the onAuthStateChange listener
       toast.success('Successfully signed in!');
       
     } catch (error: any) {
@@ -158,14 +153,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error('No user logged in');
 
-      // Update auth metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { name: data.name },
       });
 
       if (updateError) throw updateError;
 
-      // Also update profiles table
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ name: data.name })
