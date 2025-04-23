@@ -119,16 +119,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      console.log("Attempting to sign out...");
       await handleSignOut();
-      console.log("Sign out successful");
+      console.log("Sign out successful or no active session");
+      
+      // Clear state regardless of whether there was an active session
       setUser(null);
       setSession(null);
       setUserRole(null);
+      
+      // Navigate to login page
       navigate('/login');
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast.error(error.message);
-      throw error;
+      toast.error("Sign out failed: " + error.message);
     }
   };
 

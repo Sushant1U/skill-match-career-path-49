@@ -74,8 +74,22 @@ export async function handleSignIn(email: string, password: string) {
 }
 
 export async function handleSignOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    // First check if there's an active session to avoid the "Auth session missing!" error
+    const { data: sessionData } = await supabase.auth.getSession();
+    
+    // Only attempt to sign out if there's an active session
+    if (sessionData.session) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } else {
+      console.log("No active session to sign out from");
+      // Return successfully anyway since the end goal (no active session) is achieved
+    }
+  } catch (error) {
+    console.error("Error in handleSignOut:", error);
+    throw error;
+  }
 }
 
 export async function updateUserProfile(userId: string, data: any) {
