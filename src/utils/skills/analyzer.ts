@@ -1,6 +1,8 @@
 
 import { SKILLS_DATABASE } from './database';
 import { generateCareerRecommendations } from './career-recommendations';
+import { calculateSkillScore, normalizeScore } from './score-calculator';
+import { identifyStrengthsAndWeaknesses } from './skill-evaluator';
 import type { SkillAnalysisResult } from './types';
 
 export const analyzeSkillSet = (
@@ -10,41 +12,13 @@ export const analyzeSkillSet = (
   // Normalize skills to lowercase for matching
   const normalizedSkills = skills.map(s => s.toLowerCase());
   
-  // Calculate base score based on skill demand
-  let totalScore = 0;
-  let maxPossibleScore = 0;
-  let matchedSkillsCount = 0;
+  // Calculate base scores
+  const scoreResult = calculateSkillScore(normalizedSkills, proficiencyLevels);
   
-  const strengths: string[] = [];
-  const weaknesses: string[] = [];
-  
-  // Calculate skill score
-  normalizedSkills.forEach(skill => {
-    const matchedSkill = SKILLS_DATABASE[skill as keyof typeof SKILLS_DATABASE];
-    if (matchedSkill) {
-      matchedSkillsCount++;
-      const proficiency = proficiencyLevels[skill] || 5; // Default proficiency 5/10
-      const skillScore = (matchedSkill.demand * proficiency) / 10; // Weight by both demand and proficiency
-      
-      totalScore += skillScore;
-      maxPossibleScore += 10; // Maximum possible score per skill
-      
-      // Identify strengths (high demand + high proficiency)
-      if (matchedSkill.demand >= 8 && proficiency >= 7) {
-        strengths.push(skill);
-      }
-      
-      // Identify weaknesses (high demand + low proficiency)
-      if (matchedSkill.demand >= 7 && proficiency <= 4) {
-        weaknesses.push(skill);
-      }
-    }
-  });
-  
-  // If no matched skills, return a default low score
-  if (matchedSkillsCount === 0) {
+  // If no matched skills, return default result
+  if (scoreResult.matchedSkillsCount === 0) {
     return {
-      score: 30, // Base score for having listed skills, even if not in our database
+      score: 30,
       strengths: [],
       weaknesses: [],
       recommendations: [
@@ -55,21 +29,11 @@ export const analyzeSkillSet = (
     };
   }
   
-  // Normalize score to 0-100
-  let normalizedScore = Math.round((totalScore / maxPossibleScore) * 100);
+  // Calculate normalized score
+  const normalizedScore = normalizeScore(scoreResult);
   
-  // Boost score based on skill diversity
-  const uniqueIndustries = new Set<string>();
-  normalizedSkills.forEach(skill => {
-    const matchedSkill = SKILLS_DATABASE[skill as keyof typeof SKILLS_DATABASE];
-    if (matchedSkill) {
-      matchedSkill.industries.forEach(industry => uniqueIndustries.add(industry));
-    }
-  });
-  
-  // Bonus for having a diverse skill set (covering multiple industries)
-  const diversityBonus = Math.min(uniqueIndustries.size * 2, 20); // Max 20% boost
-  normalizedScore = Math.min(100, normalizedScore + diversityBonus);
+  // Identify strengths and weaknesses
+  const { strengths, weaknesses } = identifyStrengthsAndWeaknesses(normalizedSkills, proficiencyLevels);
   
   // Generate career recommendations
   const recommendations = generateCareerRecommendations(normalizedSkills);
@@ -81,3 +45,4 @@ export const analyzeSkillSet = (
     recommendations
   };
 };
+
