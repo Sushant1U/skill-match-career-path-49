@@ -22,6 +22,7 @@ import ProfileEditPage from "./pages/profile/edit";
 import SkillsAssessmentPage from "./pages/skills/assessment";
 import MyApplicationsPage from "./pages/my-applications";
 import RecommendedJobsPage from "./pages/jobs/recommended";
+import { UserRole } from "./types";
 
 const queryClient = new QueryClient();
 
@@ -111,7 +112,7 @@ const App = () => (
             <Route
               path="/notifications"
               element={
-                <ProtectedRoute allowedRole={["student", "employer"] as any}>
+                <ProtectedRoute allowedRole={["student", "employer"]}>
                   <NotificationsPage />
                 </ProtectedRoute>
               }
@@ -119,7 +120,7 @@ const App = () => (
             <Route
               path="/profile/edit"
               element={
-                <ProtectedRoute allowedRole={["student", "employer"] as any}>
+                <ProtectedRoute allowedRole={["student", "employer"]}>
                   <ProfileEditPage />
                 </ProtectedRoute>
               }

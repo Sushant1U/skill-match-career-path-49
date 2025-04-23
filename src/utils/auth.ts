@@ -49,7 +49,7 @@ export async function handleSignUp(
         id: data.user.id,
         email,
         name,
-        role,
+        role: role.toString(),
         created_at: new Date().toISOString(),
         skills: []
       });
