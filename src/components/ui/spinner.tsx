@@ -1,32 +1,26 @@
 
 import { cn } from "@/lib/utils";
 
-interface SpinnerProps {
+type SpinnerProps = {
   size?: "sm" | "md" | "lg";
   className?: string;
-}
+};
 
-export const Spinner = ({ size = "md", className }: SpinnerProps) => {
-  const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-6 w-6",
-    lg: "h-8 w-8",
-  };
-
+export function Spinner({ size = "md", className }: SpinnerProps) {
   return (
     <div
       className={cn(
-        "animate-spin rounded-full border-4 border-t-transparent",
-        sizeClasses[size],
+        "inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent",
+        {
+          "h-4 w-4": size === "sm",
+          "h-6 w-6": size === "md",
+          "h-8 w-8": size === "lg",
+        },
         className
       )}
-      style={{
-        borderTopColor: "transparent",
-        borderLeftColor: "currentColor",
-        borderRightColor: "currentColor",
-        borderBottomColor: "currentColor",
-      }}
-      aria-label="loading"
-    />
+      role="status"
+    >
+      <span className="sr-only">Loading...</span>
+    </div>
   );
-};
+}

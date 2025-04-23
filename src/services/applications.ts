@@ -1,104 +1,124 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Application, Student, Notification } from '@/types';
 
-export async function fetchApplicationsForEmployer(employerId: string, limit?: number): Promise<Application[]> {
-  try {
-    // First, get all jobs posted by this employer
-    const { data: jobs, error: jobsError } = await supabase
-      .from('jobs')
-      .select('id')
-      .eq('employer_id', employerId);
-    
-    if (jobsError) throw jobsError;
-    if (!jobs || jobs.length === 0) return [];
-    
-    const jobIds = jobs.map(job => job.id);
-    
-    // Then, get applications for those jobs
-    const { data: applications, error } = await supabase
-      .from('applications')
-      .select(`
-        id,
-        job_id,
-        student_id,
-        status,
-        created_at
-      `)
-      .in('job_id', jobIds)
-      .order('created_at', { ascending: false })
-      .limit(limit || 10);
-    
-    if (error) throw error;
-    
-    return (applications || []).map(app => ({
-      id: app.id,
-      jobId: app.job_id,
-      studentId: app.student_id,
-      status: app.status as 'pending' | 'shortlisted' | 'rejected',
-      createdAt: app.created_at,
-    }));
-  } catch (error) {
-    console.error('Error fetching applications for employer:', error);
-    return [];
+import { supabase } from '@/integrations/supabase/client';
+import { Application, Notification, Student } from '@/types';
+
+export async function fetchApplicationsForEmployer(jobId?: string, limit?: number): Promise<Application[]> {
+  let query = supabase
+    .from('applications')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (jobId) {
+    query = query.eq('job_id', jobId);
   }
+  
+  if (limit) {
+    query = query.limit(limit);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching applications:', error);
+    throw error;
+  }
+  
+  return (data || []).map(app => ({
+    id: app.id,
+    jobId: app.job_id,
+    studentId: app.student_id,
+    status: app.status,
+    createdAt: app.created_at,
+    resumeUrl: app.resume_url
+  }));
 }
 
 export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<Notification[]> {
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select(`
-        id,
-        user_id,
-        title,
-        message,
-        read,
-        created_at
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit || 10);
-    
-    if (error) throw error;
-    
-    // Map the database results to our custom Notification type
-    return (data || []).map(notification => ({
-      id: notification.id,
-      userId: notification.user_id,
-      title: notification.title,
-      message: notification.message,
-      read: notification.read,
-      createdAt: notification.created_at,
-    })) as Notification[];
-  } catch (error) {
+  let query = supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  
+  if (limit) {
+    query = query.limit(limit);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
     console.error('Error fetching notifications:', error);
     return [];
   }
+  
+  return (data || []).map(notification => ({
+    id: notification.id,
+    userId: notification.user_id,
+    title: notification.title,
+    message: notification.message,
+    read: notification.read,
+    createdAt: notification.created_at,
+    type: notification.type,
+    linkUrl: notification.link_url
+  }));
 }
 
 export async function fetchStudentProfile(studentId: string): Promise<Student | null> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', studentId)
-      .single();
-    
-    if (error) throw error;
-    if (!data) return null;
-    
-    return {
-      id: data.id,
-      userId: data.id,
-      name: data.name || 'Anonymous User',
-      email: data.email,
-      skills: data.skills || [],
-      qualifications: data.qualifications || [],
-      location: data.location || 'Location not specified',
-      resumeUrl: data.resume_url,
-    };
-  } catch (error) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', studentId)
+    .single();
+  
+  if (error || !data) {
     console.error('Error fetching student profile:', error);
     return null;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name || 'Unknown',
+    email: data.email || '',
+    location: data.location || 'No location set',
+    bio: data.bio,
+    skills: data.skills || [],
+    qualifications: data.qualifications || [],
+    resumeUrl: data.resume_url,
+    skillScore: data.skill_score
+  };
+}
+
+export async function applyForJob(jobId: string, studentId: string, resumeUrl?: string): Promise<void> {
+  // Check if already applied
+  const { data: existingApplication, error: checkError } = await supabase
+    .from('applications')
+    .select('id')
+    .eq('job_id', jobId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+  
+  if (checkError) {
+    console.error('Error checking existing application:', checkError);
+    throw checkError;
+  }
+  
+  if (existingApplication) {
+    throw new Error('You have already applied for this job');
+  }
+  
+  // Create application
+  const { error } = await supabase
+    .from('applications')
+    .insert({
+      job_id: jobId,
+      student_id: studentId,
+      resume_url: resumeUrl,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+  
+  if (error) {
+    console.error('Error applying for job:', error);
+    throw error;
   }
 }

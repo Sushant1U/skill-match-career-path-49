@@ -1,17 +1,14 @@
 
-export type UserRole = 'student' | 'employer' | 'admin';
+export type UserRole = 'student' | 'employer';
 
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
-  // Add any other properties needed
-}
-
-export interface Skill {
-  id: string;
-  name: string;
+  name?: string;
+  role?: UserRole;
+  profile?: any;
+  metadata?: any;
+  user_metadata?: any;
 }
 
 export interface Job {
@@ -26,38 +23,31 @@ export interface Job {
   status: 'active' | 'closed';
   createdAt: string;
   applications?: number;
+  hasApplied?: boolean;
+  applicationStatus?: string;
+}
+
+export interface Student {
+  id: string;
+  name: string;
+  email: string;
+  location: string;
+  bio?: string;
+  skills: string[];
+  qualifications: string[];
+  resumeUrl?: string;
+  skillScore?: number;
 }
 
 export interface Application {
   id: string;
   jobId: string;
   studentId: string;
-  status: 'pending' | 'shortlisted' | 'rejected';
+  status: 'pending' | 'shortlisted' | 'rejected' | 'accepted';
   createdAt: string;
-}
-
-export interface Student {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  skills: string[];
-  qualifications: string[];
-  location: string;
   resumeUrl?: string;
 }
 
-export interface Employer {
-  id: string;
-  userId: string;
-  companyName: string;
-  description: string;
-  logoUrl?: string;
-  location: string;
-  industry: string;
-}
-
-// Renamed to AppNotification to avoid conflict with browser's Notification API
 export interface Notification {
   id: string;
   userId: string;
@@ -65,4 +55,13 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: string;
+  type?: string;
+  linkUrl?: string;
+}
+
+export interface SkillAnalysisResult {
+  score: number;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
 }

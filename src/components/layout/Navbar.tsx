@@ -43,9 +43,6 @@ export function Navbar({ userRole }: NavbarProps) {
             <Link to="/jobs" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-platformBlue">
               Browse Jobs
             </Link>
-            <Link to="/employers" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-platformBlue">
-              For Employers
-            </Link>
             <Link to="/about" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-platformBlue">
               About Us
             </Link>
@@ -110,9 +107,6 @@ export function Navbar({ userRole }: NavbarProps) {
           </Link>
           <Link to="/jobs" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue">
             Browse Jobs
-          </Link>
-          <Link to="/employers" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue">
-            For Employers
           </Link>
           <Link to="/about" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue">
             About Us

@@ -1,15 +1,68 @@
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Job } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 interface JobCardProps {
   job: Job;
   isEmployerView?: boolean;
+  onApply?: (jobId: string) => Promise<void>;
 }
 
-export function JobCard({ job, isEmployerView = false }: JobCardProps) {
+export function JobCard({ job, isEmployerView = false, onApply }: JobCardProps) {
+  const { user } = useAuth();
+  const [isApplying, setIsApplying] = useState(false);
+  const [hasApplied, setHasApplied] = useState(job.hasApplied || false);
+
+  const handleApplyClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      toast.error("Please log in to apply for jobs");
+      return;
+    }
+    
+    if (hasApplied) {
+      toast.info("You've already applied to this job");
+      return;
+    }
+    
+    try {
+      setIsApplying(true);
+      
+      if (onApply) {
+        await onApply(job.id);
+      } else {
+        // Default application logic
+        const { error } = await supabase
+          .from('applications')
+          .insert({
+            job_id: job.id,
+            student_id: user.id,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      }
+      
+      setHasApplied(true);
+      toast.success("Application submitted successfully!");
+    } catch (error) {
+      console.error("Error applying for job:", error);
+      toast.error("Failed to submit application. Please try again.");
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start">
@@ -58,9 +111,26 @@ export function JobCard({ job, isEmployerView = false }: JobCardProps) {
             </Link>
           </div>
         ) : (
-          <Link to={`/jobs/${job.id}`}>
-            <Button size="sm">View & Apply</Button>
-          </Link>
+          <div className="flex space-x-2">
+            <Link to={`/jobs/${job.id}`}>
+              <Button variant="outline" size="sm">View Details</Button>
+            </Link>
+            {job.status === 'active' && (
+              <Button 
+                size="sm" 
+                onClick={handleApplyClick}
+                disabled={isApplying || hasApplied}
+              >
+                {isApplying ? (
+                  <><Spinner size="sm" className="mr-2" /> Applying...</>
+                ) : hasApplied ? (
+                  'Applied'
+                ) : (
+                  'Apply Now'
+                )}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>

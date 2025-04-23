@@ -1,34 +1,21 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
-import { toast } from '@/components/ui/sonner';
 
 export async function getUserRole(userId: string): Promise<UserRole | null> {
   try {
-    console.log("Fetching user role for:", userId);
-    
-    // First check user metadata - this is faster than a database query
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData?.user?.user_metadata?.role) {
-      const role = userData.user.user_metadata.role as UserRole;
-      console.log("Found role in user metadata:", role);
-      return role;
-    }
-    
-    // If no role in metadata, try the profiles table
     const { data, error } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', userId)
       .single();
-      
-    if (error) {
-      console.error('Error fetching user role from profiles:', error);
-      throw error;
+    
+    if (error || !data) {
+      console.error('Error getting user role:', error);
+      return null;
     }
     
-    console.log("User role data from profiles:", data);
-    return data?.role as UserRole || null;
+    return data.role as UserRole;
   } catch (error) {
     console.error('Error in getUserRole:', error);
     return null;
@@ -41,79 +28,61 @@ export async function handleSignUp(
   name: string, 
   role: UserRole
 ) {
-  console.log("Signing up user:", { email, name, role });
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         name,
-        role,
-      },
-    },
+        role
+      }
+    }
   });
 
-  if (error) {
-    console.error('Sign up error:', error);
-    throw error;
+  if (error) throw error;
+  
+  if (data.user) {
+    // Create profile record
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: data.user.id,
+        email,
+        name,
+        role,
+        created_at: new Date().toISOString(),
+        skills: []
+      });
+      
+    if (profileError) {
+      console.error('Error creating profile:', profileError);
+      // We won't throw here to avoid breaking the signup flow
+    }
   }
-
-  console.log("Sign up response:", data);
-  toast.success('Sign up successful! Please verify your email.');
+  
   return data;
 }
 
 export async function handleSignIn(email: string, password: string) {
-  console.log("Signing in user:", email);
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
-    password,
+    password
   });
 
-  if (error) {
-    console.error('Sign in error:', error);
-    throw error;
-  }
-
-  console.log("Sign in response:", data);
-  toast.success('Successfully signed in!');
+  if (error) throw error;
   return data;
 }
 
 export async function handleSignOut() {
-  console.log("Signing out user");
   const { error } = await supabase.auth.signOut();
-  
-  if (error) {
-    console.error('Sign out error:', error);
-    throw error;
-  }
-  
-  toast.success('Successfully signed out!');
+  if (error) throw error;
 }
 
-export async function updateUserProfile(userId: string, data: { name?: string }) {
-  if (!userId) throw new Error('No user logged in');
-  console.log("Updating user profile:", { userId, data });
-
-  const { error: updateError } = await supabase.auth.updateUser({
-    data: { name: data.name },
-  });
-
-  if (updateError) {
-    console.error('Update user error:', updateError);
-    throw updateError;
-  }
-
-  const { error: profileError } = await supabase
+export async function updateUserProfile(userId: string, data: any) {
+  const { error } = await supabase
     .from('profiles')
-    .update({ name: data.name })
+    .update(data)
     .eq('id', userId);
-
-  if (profileError) {
-    console.error('Update profile error:', profileError);
-    throw profileError;
-  }
-
-  toast.success('Profile updated successfully');
+    
+  if (error) throw error;
 }
