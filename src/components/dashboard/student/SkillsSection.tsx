@@ -31,14 +31,11 @@ export function SkillsSection() {
     enabled: !!user?.id
   });
 
-  const skills = profile?.skills || [];
-  const hasSkillData = !!profile?.skill_analysis;
-  
   // Parse skill_analysis as SkillAnalysisResult or use default values
-  const skillAnalysis: SkillAnalysisResult = profile?.skill_analysis 
+  const skillAnalysis = profile?.skill_analysis 
     ? (typeof profile.skill_analysis === 'string' 
         ? JSON.parse(profile.skill_analysis) 
-        : profile.skill_analysis as unknown as SkillAnalysisResult)
+        : profile.skill_analysis)
     : {
         score: 0,
         strengths: [],
@@ -46,11 +43,14 @@ export function SkillsSection() {
         recommendations: []
       };
 
+  const skills = profile?.skills || [];
+  const hasSkillData = !!profile?.skill_analysis;
+
   return (
     <DashboardCard 
       title="Skills & Assessment" 
       icon={<GraduationCap size={20} />}
-      linkText="View All"
+      linkText="Update Skills"
       linkUrl="/skills/assessment"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

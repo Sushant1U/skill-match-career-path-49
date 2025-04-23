@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { GraduationCap, Award, TrendingUp, AlertTriangle, Check, X } from 'lucide-react';
+import { GraduationCap, Award, TrendingUp, AlertTriangle, Check, X, Save } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,14 +42,12 @@ export default function SkillsAssessmentPage() {
   
   useEffect(() => {
     if (profile?.skills && Array.isArray(profile.skills)) {
-      // Initialize skills with proficiency levels
       const initialSkills = profile.skills.map(name => ({
         name,
         proficiency: profile.skill_proficiency?.[name] || 5
       }));
       setSkills(initialSkills);
       
-      // If skill analysis exists, load it
       if (profile.skill_analysis) {
         setAnalysisResult(profile.skill_analysis);
       }
@@ -75,6 +72,33 @@ export default function SkillsAssessmentPage() {
     onError: (error) => {
       toast.error('Failed to save skills and assessment');
       console.error('Update error:', error);
+    }
+  });
+  
+  const updateAssessmentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          skill_analysis: data.analysis,
+          skill_proficiency: data.proficiencyMap,
+          skills: data.skillNames,
+          skill_score: data.analysis.score,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      toast.success('Skills assessment saved successfully');
+    },
+    onError: (error) => {
+      console.error('Save error:', error);
+      toast.error('Failed to save skills assessment');
     }
   });
   
@@ -112,13 +136,11 @@ export default function SkillsAssessmentPage() {
     setIsLoading(true);
     
     try {
-      // Create proficiency map
       const proficiencyMap: Record<string, number> = {};
       skills.forEach(s => {
         proficiencyMap[s.name.toLowerCase()] = s.proficiency;
       });
       
-      // Run the analysis
       const result = analyzeSkillSet(
         skills.map(s => s.name.toLowerCase()), 
         proficiencyMap
@@ -126,7 +148,6 @@ export default function SkillsAssessmentPage() {
       
       setAnalysisResult(result);
       
-      // Save the results
       const skillNames = skills.map(s => s.name);
       updateProfileMutation.mutate({
         skills: skillNames,
@@ -140,6 +161,24 @@ export default function SkillsAssessmentPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleSaveAssessment = () => {
+    if (skills.length === 0 || !analysisResult) {
+      toast.error('Please add skills and run the assessment first');
+      return;
+    }
+
+    const proficiencyMap: Record<string, number> = {};
+    skills.forEach(s => {
+      proficiencyMap[s.name.toLowerCase()] = s.proficiency;
+    });
+
+    updateAssessmentMutation.mutate({
+      analysis: analysisResult,
+      proficiencyMap,
+      skillNames: skills.map(s => s.name)
+    });
   };
   
   const renderProficiencyLabel = (proficiency: number) => {
@@ -169,7 +208,6 @@ export default function SkillsAssessmentPage() {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left column: Skills Input */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -183,7 +221,6 @@ export default function SkillsAssessmentPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {/* Add new skill */}
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -198,7 +235,6 @@ export default function SkillsAssessmentPage() {
                       </Button>
                     </div>
                     
-                    {/* Skills list */}
                     <div className="space-y-4">
                       {skills.length === 0 ? (
                         <p className="text-center text-gray-500 py-4">
@@ -252,7 +288,6 @@ export default function SkillsAssessmentPage() {
               </Card>
             </div>
             
-            {/* Right column: Results */}
             <div>
               {analysisResult ? (
                 <Card>
@@ -298,7 +333,6 @@ export default function SkillsAssessmentPage() {
                       </div>
                     </div>
                     
-                    {/* Strengths */}
                     {analysisResult.strengths.length > 0 && (
                       <div className="mb-4">
                         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
@@ -314,7 +348,6 @@ export default function SkillsAssessmentPage() {
                       </div>
                     )}
                     
-                    {/* Areas to Improve */}
                     {analysisResult.weaknesses.length > 0 && (
                       <div className="mb-4">
                         <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
@@ -330,7 +363,6 @@ export default function SkillsAssessmentPage() {
                       </div>
                     )}
                     
-                    {/* Career Recommendations */}
                     <div>
                       <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                         <TrendingUp className="h-4 w-4 text-platformBlue mr-1" /> Recommended Career Paths
@@ -358,7 +390,18 @@ export default function SkillsAssessmentPage() {
                 </Card>
               )}
               
-              <div className="mt-6">
+              <div className="mt-6 space-y-3">
+                {analysisResult && (
+                  <Button
+                    className="w-full"
+                    onClick={handleSaveAssessment}
+                    disabled={updateAssessmentMutation.isPending}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {updateAssessmentMutation.isPending ? 'Saving...' : 'Save Assessment'}
+                  </Button>
+                )}
+                
                 <Button
                   variant="outline"
                   className="w-full"

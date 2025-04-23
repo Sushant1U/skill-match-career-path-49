@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -9,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Link } from 'react-router-dom';
 import { Spinner } from '@/components/ui/spinner';
+import { ResumeUpload } from './ResumeUpload';
 
 export function ProfileSection() {
   const { user } = useAuth();
@@ -147,59 +147,22 @@ export function ProfileSection() {
         ) : (
           <>
             {profile?.resume_url ? (
-              <div className="flex justify-between items-center">
-                <a 
-                  href={profile.resume_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-platformBlue hover:text-platformBlue-dark hover:underline"
-                >
-                  View Current Resume
-                </a>
-                <label htmlFor="resume-upload" className="cursor-pointer">
-                  <Button variant="outline" disabled={uploading}>
-                    <FileUp className="mr-2 h-4 w-4" />
-                    {uploading ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Uploading...
-                      </>
-                    ) : 'Update Resume'}
-                  </Button>
-                  <input
-                    id="resume-upload"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                  />
-                </label>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <a 
+                    href={profile.resume_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-platformBlue hover:text-platformBlue-dark hover:underline"
+                  >
+                    View Current Resume
+                  </a>
+                </div>
+                <ResumeUpload />
               </div>
             ) : (
-              <label htmlFor="resume-upload" className="cursor-pointer block w-full">
-                <Button className="w-full" variant="outline" disabled={uploading}>
-                  <FileUp className="mr-2 h-4 w-4" />
-                  {uploading ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Uploading...
-                    </>
-                  ) : 'Upload Resume'}
-                </Button>
-                <input
-                  id="resume-upload"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileUpload}
-                  disabled={uploading}
-                />
-              </label>
+              <ResumeUpload />
             )}
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Accepted formats: PDF, DOC, DOCX. Max size: 5MB.
-            </p>
           </>
         )}
       </div>
