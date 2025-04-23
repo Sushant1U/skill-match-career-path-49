@@ -109,6 +109,5 @@ export function ChatBot() {
         </Button>
       </form>
     </Card>
-  </div>
   );
 }
