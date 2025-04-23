@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { Navbar } from '@/components/layout/Navbar';
@@ -103,22 +102,7 @@ export default function EmployerDashboard() {
     queryKey: ['employer-notifications', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
-      try {
-        const notificationsData = await fetchNotificationsForUser(user.id, 5);
-        
-        return notificationsData.map(notification => ({
-          id: notification.id,
-          userId: notification.user_id,
-          title: notification.title,
-          message: notification.message,
-          read: notification.read,
-          createdAt: notification.created_at
-        })) as Notification[];
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-        return [];
-      }
+      return fetchNotificationsForUser(user.id, 5);
     },
     enabled: !!user
   });

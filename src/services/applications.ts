@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Application, Student } from '@/types';
 
@@ -16,25 +15,26 @@ export async function fetchApplicationsForEmployer(employerId: string, limit?: n
     const jobIds = jobs.map(job => job.id);
     
     // Then, get applications for those jobs
-    let query = supabase
+    const { data: applications, error } = await supabase
       .from('applications')
-      .select('*')
+      .select(`
+        id,
+        job_id,
+        student_id,
+        status,
+        created_at
+      `)
       .in('job_id', jobIds)
-      .order('created_at', { ascending: false });
-    
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    const { data, error } = await query;
+      .order('created_at', { ascending: false })
+      .limit(limit || 10);
     
     if (error) throw error;
     
-    return (data || []).map(app => ({
+    return (applications || []).map(app => ({
       id: app.id,
       jobId: app.job_id,
       studentId: app.student_id,
-      status: app.status,
+      status: app.status as 'pending' | 'shortlisted' | 'rejected',
       createdAt: app.created_at,
     }));
   } catch (error) {
@@ -70,23 +70,32 @@ export async function fetchStudentProfile(studentId: string): Promise<Student | 
   }
 }
 
-export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<any[]> {
+export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<Notification[]> {
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('notifications')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        title,
+        message,
+        read,
+        created_at
+      `)
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    const { data, error } = await query;
+      .order('created_at', { ascending: false })
+      .limit(limit || 10);
     
     if (error) throw error;
     
-    return data || [];
+    return (data || []).map(notification => ({
+      id: notification.id,
+      userId: notification.user_id,
+      title: notification.title,
+      message: notification.message,
+      read: notification.read,
+      createdAt: notification.created_at,
+    }));
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return [];

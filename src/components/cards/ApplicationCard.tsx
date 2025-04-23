@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +34,17 @@ export function ApplicationCard({
       </div>
     );
   }
+
+  const getBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'shortlisted':
+        return 'default';
+      case 'rejected':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
   
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
@@ -43,7 +53,7 @@ export function ApplicationCard({
           <h3 className="text-xl font-semibold text-gray-800 mb-1">{student.name}</h3>
           <p className="text-gray-500 mb-3">{student.location}</p>
         </div>
-        <Badge variant={application.status === 'pending' ? 'default' : (application.status === 'shortlisted' ? 'success' : 'destructive')}>
+        <Badge variant={getBadgeVariant(application.status)}>
           {application.status}
         </Badge>
       </div>
