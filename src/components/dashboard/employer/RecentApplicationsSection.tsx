@@ -1,41 +1,81 @@
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { ApplicationCard } from "@/components/cards/ApplicationCard";
 import { Spinner } from "@/components/ui/spinner";
 import { Application, Student } from "@/types";
-import { fetchApplicationsForEmployer, fetchStudentProfile } from "@/services/applications";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 
 export function RecentApplicationsSection() {
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  // Fetch applications with real-time updates
   const { data: applications = [], isLoading: isLoadingApplications } = useQuery({
     queryKey: ['employer-applications'],
-    queryFn: async () => fetchApplicationsForEmployer(undefined, 5)
-  });
-
-  const { data: students = {}, isLoading: isLoadingStudents } = useQuery({
-    queryKey: ['application-students', applications],
     queryFn: async () => {
-      const studentIds = applications.map(app => app.studentId);
-      const uniqueIds = [...new Set(studentIds)];
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          job:jobs(title, company),
+          student:profiles(id, name, email, skills, location, resume_url)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
       
-      const studentsMap: Record<string, Student | null> = {};
-      await Promise.all(
-        uniqueIds.map(async (id) => {
-          const student = await fetchStudentProfile(id);
-          studentsMap[id] = student;
-        })
-      );
-      return studentsMap;
+      if (error) throw error;
+      
+      return (data || []).map(app => ({
+        id: app.id,
+        jobId: app.job_id,
+        studentId: app.student_id,
+        status: app.status,
+        createdAt: app.created_at,
+        resumeUrl: app.resume_url || app.student?.resume_url,
+        jobTitle: app.job?.title,
+        jobCompany: app.job?.company,
+        student: app.student ? {
+          id: app.student.id,
+          name: app.student.name || 'Anonymous',
+          email: app.student.email,
+          skills: app.student.skills || [],
+          location: app.student.location || 'Location not specified',
+          resumeUrl: app.student.resume_url
+        } : null
+      })) as (Application & { 
+        student: Student | null, 
+        jobTitle?: string, 
+        jobCompany?: string 
+      })[];
     },
-    enabled: applications.length > 0
+    refetchInterval: 30000 // Refetch every 30 seconds
   });
 
   const handleContactStudent = (studentId: string) => {
-    const student = students[studentId];
+    const application = applications.find(app => app.studentId === studentId);
+    const student = application?.student;
+    
     if (student) {
-      toast.success(`Contact email sent to ${student.name} (${student.email})`);
+      setSelectedStudentId(studentId);
+      
+      // In a real app, this would open a contact modal or form
+      // For now, we'll just show a toast notification
+      toast.success(`Contact initiated with ${student.name} (${student.email})`);
+      
+      // Update the application status to "contacted" in the database
+      supabase
+        .from('applications')
+        .update({ status: 'contacted' })
+        .eq('student_id', studentId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating application status:', error);
+            toast.error('Failed to update contact status');
+          }
+        });
     } else {
       toast.error('Unable to contact student. Student information not available.');
     }
@@ -48,7 +88,7 @@ export function RecentApplicationsSection() {
       linkText="View All Candidates"
       linkUrl="/employer/applicants"
     >
-      {isLoadingApplications || isLoadingStudents ? (
+      {isLoadingApplications ? (
         <div className="py-6 flex justify-center">
           <Spinner size="lg" />
         </div>
@@ -58,12 +98,21 @@ export function RecentApplicationsSection() {
         </div>
       ) : (
         <div className="space-y-4">
-          {applications.slice(0, 3).map(application => (
+          {applications.map(application => (
             <ApplicationCard
               key={application.id}
-              application={application}
-              student={students[application.studentId]}
+              application={{
+                id: application.id,
+                jobId: application.jobId,
+                studentId: application.studentId,
+                status: application.status,
+                createdAt: application.createdAt,
+                resumeUrl: application.resumeUrl,
+              }}
+              student={application.student}
               onContact={handleContactStudent}
+              jobTitle={application.jobTitle}
+              jobCompany={application.jobCompany}
             />
           ))}
         </div>

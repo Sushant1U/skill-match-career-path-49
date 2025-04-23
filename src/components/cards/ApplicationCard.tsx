@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +11,17 @@ interface ApplicationCardProps {
   student: Student | null;
   isLoading?: boolean;
   onContact?: (studentId: string) => void;
+  jobTitle?: string;
+  jobCompany?: string;
 }
 
 export function ApplicationCard({ 
   application, 
   student, 
   isLoading = false,
-  onContact 
+  onContact,
+  jobTitle,
+  jobCompany
 }: ApplicationCardProps) {
   
   if (isLoading) {
@@ -37,10 +42,13 @@ export function ApplicationCard({
 
   const getBadgeVariant = (status: string) => {
     switch (status) {
+      case 'contacted':
       case 'shortlisted':
         return 'default';
       case 'rejected':
         return 'destructive';
+      case 'interviewed':
+        return 'success';
       default:
         return 'secondary';
     }
@@ -57,6 +65,14 @@ export function ApplicationCard({
           {application.status}
         </Badge>
       </div>
+
+      {(jobTitle && jobCompany) && (
+        <div className="mb-4 bg-gray-50 p-2 rounded-md">
+          <p className="text-sm text-gray-500">Applied for:</p>
+          <p className="text-sm font-medium">{jobTitle}</p>
+          <p className="text-sm text-gray-500">{jobCompany}</p>
+        </div>
+      )}
 
       <div className="mb-4">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Skills:</h4>
@@ -106,9 +122,10 @@ export function ApplicationCard({
           <Button 
             size="sm" 
             onClick={() => onContact && onContact(student.id)}
+            disabled={application.status === 'contacted'}
           >
             <Mail className="mr-2 h-4 w-4" />
-            Contact
+            {application.status === 'contacted' ? 'Contacted' : 'Contact'}
           </Button>
         </div>
       </div>

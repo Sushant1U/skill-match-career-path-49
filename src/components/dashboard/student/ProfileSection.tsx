@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -7,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Link } from 'react-router-dom';
+import { Spinner } from '@/components/ui/spinner';
 
 export function ProfileSection() {
   const { user } = useAuth();
@@ -30,22 +32,6 @@ export function ProfileSection() {
     enabled: !!user?.id
   });
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: { resume_url: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
-        
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-    }
-  });
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -64,6 +50,15 @@ export function ProfileSection() {
     
     try {
       setUploading(true);
+      
+      // First check if the bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.some(bucket => bucket.name === 'resumes')) {
+        await supabase.storage.createBucket('resumes', {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024 // 5MB
+        });
+      }
       
       const fileName = `${user.id}-${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -145,34 +140,68 @@ export function ProfileSection() {
       </div>
       
       <div className="mt-4">
-        {profile?.resume_url ? (
-          <div className="flex justify-between items-center">
-            <a 
-              href={profile.resume_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-platformBlue hover:text-platformBlue-dark hover:underline"
-            >
-              View Current Resume
-            </a>
-            <Link to="/profile/edit" className="cursor-pointer">
-              <Button variant="outline">
-                <FileUp className="mr-2 h-4 w-4" />
-                Update Resume
-              </Button>
-            </Link>
+        {profileLoading ? (
+          <div className="text-center py-2">
+            <Spinner size="sm" />
           </div>
         ) : (
-          <Link to="/profile/edit" className="block w-full">
-            <Button className="w-full" variant="outline">
-              <FileUp className="mr-2 h-4 w-4" />
-              Upload Resume
-            </Button>
-          </Link>
+          <>
+            {profile?.resume_url ? (
+              <div className="flex justify-between items-center">
+                <a 
+                  href={profile.resume_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-platformBlue hover:text-platformBlue-dark hover:underline"
+                >
+                  View Current Resume
+                </a>
+                <label htmlFor="resume-upload" className="cursor-pointer">
+                  <Button variant="outline" disabled={uploading}>
+                    <FileUp className="mr-2 h-4 w-4" />
+                    {uploading ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Uploading...
+                      </>
+                    ) : 'Update Resume'}
+                  </Button>
+                  <input
+                    id="resume-upload"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+            ) : (
+              <label htmlFor="resume-upload" className="cursor-pointer block w-full">
+                <Button className="w-full" variant="outline" disabled={uploading}>
+                  <FileUp className="mr-2 h-4 w-4" />
+                  {uploading ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Uploading...
+                    </>
+                  ) : 'Upload Resume'}
+                </Button>
+                <input
+                  id="resume-upload"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                />
+              </label>
+            )}
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Accepted formats: PDF, DOC, DOCX. Max size: 5MB.
+            </p>
+          </>
         )}
-        <p className="text-xs text-gray-500 mt-2 text-center">
-          Please go to the Profile Edit page to upload or update your resume
-        </p>
       </div>
     </DashboardCard>
   );

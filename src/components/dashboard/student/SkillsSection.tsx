@@ -1,17 +1,19 @@
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
-import { GraduationCap } from 'lucide-react';
+
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SkillsList } from '@/components/dashboard/SkillsList';
+import { SkillScore } from '@/components/dashboard/student/SkillScore';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { GraduationCap, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { calculateSkillScore } from '@/utils/skill-rating';
 
 export function SkillsSection() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const { data: profile, isLoading } = useQuery({
+  
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -28,59 +30,77 @@ export function SkillsSection() {
     enabled: !!user?.id
   });
 
-  useEffect(() => {
-    const updateSkillScore = async () => {
-      if (profile?.skills && profile.skills.length > 0) {
-        try {
-          const result = await calculateSkillScore(profile.skills);
-          
-          const { error } = await supabase
-            .from('profiles')
-            .update({
-              skill_score: result.score,
-              skill_analysis: result
-            })
-            .eq('id', user?.id);
-            
-          if (error) throw error;
-          
-          queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
-        } catch (error) {
-          console.error('Error updating skill score:', error);
-        }
-      }
-    };
-
-    updateSkillScore();
-  }, [profile?.skills, user?.id]);
+  const skills = profile?.skills || [];
+  const hasSkillData = !!profile?.skill_analysis;
+  const skillAnalysis = profile?.skill_analysis || {
+    score: 0,
+    strengths: [],
+    weaknesses: [],
+    recommendations: []
+  };
 
   return (
     <DashboardCard 
-      title="Skills" 
+      title="Skills & Assessment" 
       icon={<GraduationCap size={20} />}
-      linkText="Take Assessment"
+      linkText="View All"
       linkUrl="/skills/assessment"
     >
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Your Skills</h3>
-          <span className="text-sm text-gray-500">
-            {profile?.skill_score !== null ? `Score: ${profile?.skill_score}` : 'Calculating...'}
-          </span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          {skills.length > 0 ? (
+            <SkillsList skills={skills} />
+          ) : (
+            <div className="bg-gray-50 rounded-lg p-6 text-center">
+              <p className="text-gray-500 mb-4">
+                You haven't added any skills yet. Add skills to see job matches and recommendations.
+              </p>
+              <Link to="/skills/assessment">
+                <Button size="sm">Add Skills</Button>
+              </Link>
+            </div>
+          )}
         </div>
         
-        {isLoading ? (
-          <div className="text-center py-4">Loading skills...</div>
-        ) : profile?.skills && profile.skills.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {profile.skills.map((skill, index) => (
-              <Button key={index} variant="outline" size="sm">{skill}</Button>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">No skills added yet.</div>
-        )}
+        <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+          {!profileLoading && (
+            <>
+              {hasSkillData ? (
+                <SkillScore 
+                  score={skillAnalysis.score}
+                  strengths={skillAnalysis.strengths}
+                  weaknesses={skillAnalysis.weaknesses}
+                  recommendations={skillAnalysis.recommendations}
+                />
+              ) : (
+                <div className="text-center py-6 px-4 space-y-4">
+                  <TrendingUp size={32} className="mx-auto text-gray-400" />
+                  <div>
+                    <h3 className="font-medium text-gray-800">Skill Assessment</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Get your skills analyzed and see your market fit score.
+                    </p>
+                  </div>
+                  <Link to="/skills/assessment">
+                    <Button size="sm" className="w-full">Start Assessment</Button>
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+      
+      {hasSkillData && (
+        <>
+          <Separator className="my-4" />
+          <div className="flex justify-end">
+            <Link to="/skills/assessment">
+              <Button variant="outline" size="sm">Update Assessment</Button>
+            </Link>
+          </div>
+        </>
+      )}
     </DashboardCard>
   );
 }

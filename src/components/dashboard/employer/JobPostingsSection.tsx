@@ -17,7 +17,10 @@ export function JobPostingsSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jobs')
-        .select('*')
+        .select(`
+          *,
+          applications_count:applications(count)
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -33,9 +36,10 @@ export function JobPostingsSection() {
         employerId: job.employer_id,
         status: job.status as 'active' | 'closed',
         createdAt: job.created_at,
-        applications: job.applications_count
+        applications: job.applications_count?.[0]?.count || 0
       })) as Job[];
-    }
+    },
+    refetchInterval: 30000 // Refetch every 30 seconds to keep data fresh
   });
 
   return (
