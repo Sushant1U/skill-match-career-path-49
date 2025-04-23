@@ -9,10 +9,13 @@ import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import EmployerDashboard from "./pages/dashboard/EmployerDashboard";
+import EmployerJobsPage from "./pages/employer/jobs";
+import CandidatesPage from "./pages/employer/candidates";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import JobsPage from "./pages/jobs";
+import NewJob from "./pages/new-job";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +47,30 @@ const App = () => (
               }
             />
             <Route path="/jobs" element={<JobsPage />} />
+            <Route
+              path="/new-job"
+              element={
+                <ProtectedRoute allowedRole="employer">
+                  <NewJob />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/jobs"
+              element={
+                <ProtectedRoute allowedRole="employer">
+                  <EmployerJobsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employer/candidates"
+              element={
+                <ProtectedRoute allowedRole="employer">
+                  <CandidatesPage />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

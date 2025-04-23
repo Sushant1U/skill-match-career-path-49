@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -6,6 +7,7 @@ import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { NotificationList } from '@/components/dashboard/NotificationList';
 import { JobCard } from '@/components/cards/JobCard';
 import { StudentProfileCard } from '@/components/cards/StudentProfileCard';
+import { ApplicationCard } from '@/components/cards/ApplicationCard';
 import { 
   PieChart,
   BarChart3,
@@ -13,63 +15,29 @@ import {
   Users,
   Bell,
   Building,
-  Plus
+  Plus,
+  Mail,
+  Eye,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Job, Notification, Student } from '@/types';
+import { Job, Notification, Student, Application } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
-
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    userId: '1',
-    title: 'New Application',
-    message: 'A new candidate has applied for the Frontend Developer position.',
-    read: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    userId: '1',
-    title: 'Job Post Expiring',
-    message: 'Your "UX Designer" job post will expire in 3 days.',
-    read: true,
-    createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-  }
-];
-const mockRecentApplicants: Student[] = [
-  {
-    id: '1',
-    userId: '101',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    skills: ['React', 'JavaScript', 'TypeScript', 'CSS'],
-    qualifications: ['Bachelor\'s in Computer Science', 'Frontend Development Certificate'],
-    location: 'San Francisco, CA',
-    resumeUrl: '#'
-  },
-  {
-    id: '2',
-    userId: '102',
-    name: 'Bob Smith',
-    email: 'bob@example.com',
-    skills: ['UI/UX Design', 'Figma', 'User Research', 'Adobe XD'],
-    qualifications: ['Master\'s in Design', 'UX Certificate'],
-    location: 'New York, NY',
-    resumeUrl: '#'
-  }
-];
+import { Spinner } from '@/components/ui/spinner';
+import { fetchApplicationsForEmployer, fetchStudentProfile, fetchNotificationsForUser } from '@/services/applications';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   
-  const { data: jobs = [], isLoading, error } = useQuery({
+  // Fetch jobs posted by the employer
+  const { data: jobs = [], isLoading: isLoadingJobs, error: jobsError } = useQuery({
     queryKey: ['employer-jobs', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -99,23 +67,63 @@ export default function EmployerDashboard() {
     enabled: !!user
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ['employer-profile', user?.id],
+  // Fetch recent applications
+  const { data: applications = [], isLoading: isLoadingApplications } = useQuery({
+    queryKey: ['employer-applications', user?.id],
     queryFn: async () => {
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      if (!user) return [];
+      return fetchApplicationsForEmployer(user.id, 5);
     },
     enabled: !!user
   });
 
+  // Fetch student profiles for applications
+  const { data: students = {}, isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['application-students', applications],
+    queryFn: async () => {
+      const studentIds = applications.map(app => app.studentId);
+      const uniqueIds = [...new Set(studentIds)];
+      
+      const studentsMap: Record<string, Student | null> = {};
+      
+      await Promise.all(
+        uniqueIds.map(async (id) => {
+          const student = await fetchStudentProfile(id);
+          studentsMap[id] = student;
+        })
+      );
+      
+      return studentsMap;
+    },
+    enabled: applications.length > 0
+  });
+
+  // Fetch notifications
+  const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
+    queryKey: ['employer-notifications', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      try {
+        const notificationsData = await fetchNotificationsForUser(user.id, 5);
+        
+        return notificationsData.map(notification => ({
+          id: notification.id,
+          userId: notification.user_id,
+          title: notification.title,
+          message: notification.message,
+          read: notification.read,
+          createdAt: notification.created_at
+        })) as Notification[];
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return [];
+      }
+    },
+    enabled: !!user
+  });
+
+  // Mutation for updating job status
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: 'active' | 'closed' }) => {
       const { error } = await supabase
@@ -136,26 +144,64 @@ export default function EmployerDashboard() {
     }
   });
 
+  // Mark notification as read
+  const markNotificationAsRead = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user?.id);
+        
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications'] });
+    },
+    onError: (error) => {
+      toast.error(`Error marking notification as read: ${error.message}`);
+    }
+  });
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user?.id)
+        .eq('read', false);
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications'] });
+      toast.success('All notifications marked as read');
+    },
+    onError: (error) => {
+      toast.error(`Error marking all notifications as read: ${error.message}`);
+    }
+  });
+
+  // Handle creating a new job
   const handleCreateJob = () => {
     navigate('/new-job');
   };
   
-  const markNotificationAsRead = (id: string) => {
-    setNotifications(
-      notifications.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+  // Handle contact student
+  const handleContactStudent = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    
+    const student = students[studentId];
+    if (student) {
+      toast.success(`Contact email sent to ${student.name} (${student.email})`);
+    } else {
+      toast.error('Unable to contact student. Student information not available.');
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
-    setNotifications(
-      notifications.map(notification => ({ ...notification, read: true }))
-    );
-  };
-
+  // Calculate dashboard metrics
   const activeJobs = jobs.filter(job => job.status === 'active').length;
   const closedJobs = jobs.filter(job => job.status === 'closed').length;
   const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0);
@@ -214,7 +260,7 @@ export default function EmployerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Response Rate</p>
-                <p className="text-2xl font-bold">-</p>
+                <p className="text-2xl font-bold">{applications.length > 0 ? Math.round((applications.filter(a => a.status !== 'pending').length / applications.length) * 100) : 0}%</p>
               </div>
               <div className="p-3 bg-indigo-50 rounded-full">
                 <BarChart3 className="h-6 w-6 text-indigo-500" />
@@ -232,9 +278,11 @@ export default function EmployerDashboard() {
               linkText="View All"
               linkUrl="/employer/jobs"
             >
-              {isLoading ? (
-                <div className="py-6 text-center">Loading jobs...</div>
-              ) : error ? (
+              {isLoadingJobs ? (
+                <div className="py-6 flex justify-center">
+                  <Spinner size="lg" />
+                </div>
+              ) : jobsError ? (
                 <div className="py-6 text-center text-red-500">Error loading jobs</div>
               ) : jobs.length === 0 ? (
                 <div className="py-6 text-center text-gray-500">
@@ -242,9 +290,16 @@ export default function EmployerDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {jobs.map(job => (
+                  {jobs.slice(0, 3).map(job => (
                     <JobCard key={job.id} job={job} isEmployerView={true} />
                   ))}
+                  {jobs.length > 3 && (
+                    <div className="text-center pt-2">
+                      <Button variant="link" onClick={() => navigate('/employer/jobs')}>
+                        View all {jobs.length} jobs
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </DashboardCard>
@@ -255,15 +310,26 @@ export default function EmployerDashboard() {
               linkText="View All Candidates"
               linkUrl="/employer/applicants"
             >
-              <div className="space-y-4">
-                {mockRecentApplicants.map(student => (
-                  <StudentProfileCard 
-                    key={student.id} 
-                    student={student} 
-                    matchPercentage={Math.floor(Math.random() * 30) + 70} // Random match between 70-100%
-                  />
-                ))}
-              </div>
+              {isLoadingApplications || isLoadingStudents ? (
+                <div className="py-6 flex justify-center">
+                  <Spinner size="lg" />
+                </div>
+              ) : applications.length === 0 ? (
+                <div className="py-6 text-center text-gray-500">
+                  No applications received yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {applications.slice(0, 3).map(application => (
+                    <ApplicationCard
+                      key={application.id}
+                      application={application}
+                      student={students[application.studentId]}
+                      onContact={handleContactStudent}
+                    />
+                  ))}
+                </div>
+              )}
             </DashboardCard>
 
             <DashboardCard 
@@ -323,28 +389,41 @@ export default function EmployerDashboard() {
               linkText="Edit"
               linkUrl="/employer/profile/edit"
             >
-              <div className="text-center py-4">
-                <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-4">
-                  <Building size={36} />
+              {isLoadingJobs ? (
+                <div className="py-6 flex justify-center">
+                  <Spinner />
                 </div>
-                <h3 className="font-medium text-lg">
-                  {profile?.company_name || user?.user_metadata?.name || 'Your Company'}
-                </h3>
-                <p className="text-gray-500">{profile?.industry || 'Technology'}</p>
-                <p className="text-gray-500 text-sm mt-1">{profile?.location || 'No location set'}</p>
-              </div>
-              <div className="space-y-2 mt-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Profile Completion</span>
-                  <span className="font-medium">90%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-platformBlue h-2.5 rounded-full w-[90%]"></div>
-                </div>
-              </div>
-              <Button className="w-full mt-4" variant="outline">
-                View Public Profile
-              </Button>
+              ) : (
+                <>
+                  <div className="text-center py-4">
+                    <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-4">
+                      <Building size={36} />
+                    </div>
+                    <h3 className="font-medium text-lg">
+                      {jobs[0]?.company || user?.user_metadata?.name || 'Your Company'}
+                    </h3>
+                    <p className="text-gray-500">{user?.user_metadata?.industry || 'Technology'}</p>
+                    <p className="text-gray-500 text-sm mt-1">{jobs[0]?.location || 'No location set'}</p>
+                  </div>
+                  <div className="space-y-2 mt-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Profile Completion</span>
+                      <span className="font-medium">90%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div className="bg-platformBlue h-2.5 rounded-full w-[90%]"></div>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full mt-4" 
+                    variant="outline" 
+                    onClick={() => navigate('/employer/profile')}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Public Profile
+                  </Button>
+                </>
+              )}
             </DashboardCard>
             
             <DashboardCard 
@@ -353,12 +432,18 @@ export default function EmployerDashboard() {
               linkText="View All"
               linkUrl="/employer/notifications"
             >
-              <NotificationList 
-                notifications={notifications}
-                onMarkAsRead={markNotificationAsRead}
-                onMarkAllAsRead={markAllNotificationsAsRead}
-                limit={3}
-              />
+              {isLoadingNotifications ? (
+                <div className="py-6 flex justify-center">
+                  <Spinner />
+                </div>
+              ) : (
+                <NotificationList 
+                  notifications={notifications}
+                  onMarkAsRead={(id) => markNotificationAsRead.mutate(id)}
+                  onMarkAllAsRead={() => markAllNotificationsAsRead.mutate()}
+                  limit={3}
+                />
+              )}
             </DashboardCard>
 
             <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
@@ -374,7 +459,7 @@ export default function EmployerDashboard() {
                   <BarChart3 className="mr-2 h-4 w-4" /> View Analytics
                 </Button>
                 <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/employer/profile/edit')}>
-                  <Building className="mr-2 h-4 w-4" /> Update Company Profile
+                  <Edit className="mr-2 h-4 w-4" /> Update Company Profile
                 </Button>
               </div>
             </div>
