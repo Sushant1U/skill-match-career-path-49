@@ -26,58 +26,42 @@ export function DashboardStats() {
       // Get total applications
       let applicationsCount = 0;
       try {
-        // Use a properly typed approach for RPC calls
-        const { data, error } = await supabase.rpc(
-          'get_employer_applications_count', 
-          { employer_id: user.id },
-          { count: 'exact' } // Add options to help TypeScript infer the correct return type
-        );
-        
-        if (error) throw error;
-        applicationsCount = data !== null ? Number(data) : 0;
-      } catch (error) {
-        console.error('Error fetching applications count:', error);
-        // Fallback: query applications through jobs
+        // Fixed: Use a direct query instead of RPC to avoid TypeScript issues
         const jobIds = jobsData?.map(job => job.id) || [];
+        
         if (jobIds.length > 0) {
-          const { data, error } = await supabase
+          const { count, error } = await supabase
             .from('applications')
-            .select('id')
+            .select('*', { count: 'exact', head: true })
             .in('job_id', jobIds);
           
-          if (!error) {
-            applicationsCount = data?.length || 0;
-          }
+          if (error) throw error;
+          applicationsCount = count || 0;
         }
+      } catch (error) {
+        console.error('Error fetching applications count:', error);
+        toast.error('Error loading applications data');
       }
       
       // Get response rate (non-pending applications / total applications)
       let respondedCount = 0;
       try {
-        // Use a properly typed approach for RPC calls
-        const { data, error } = await supabase.rpc(
-          'get_employer_responded_applications_count', 
-          { employer_id: user.id },
-          { count: 'exact' } // Add options to help TypeScript infer the correct return type
-        );
-        
-        if (error) throw error;
-        respondedCount = data !== null ? Number(data) : 0;
-      } catch (error) {
-        console.error('Error fetching responded applications count:', error);
-        // Fallback: query responded applications through jobs
+        // Fixed: Use a direct query instead of RPC to avoid TypeScript issues
         const jobIds = jobsData?.map(job => job.id) || [];
+        
         if (jobIds.length > 0) {
-          const { data, error } = await supabase
+          const { count, error } = await supabase
             .from('applications')
-            .select('id')
+            .select('*', { count: 'exact', head: true })
             .in('job_id', jobIds)
             .neq('status', 'pending');
           
-          if (!error) {
-            respondedCount = data?.length || 0;
-          }
+          if (error) throw error;
+          respondedCount = count || 0;
         }
+      } catch (error) {
+        console.error('Error fetching responded applications count:', error);
+        toast.error('Error loading response rate data');
       }
       
       return {
