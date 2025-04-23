@@ -5,17 +5,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/sonner';
+import { ShortlistedStats } from './ShortlistedStats';
 
 export function DashboardStats() {
   const { user } = useAuth();
 
-  // Fetch data directly from the database for accurate counts
   const { data: dashboardStats, isLoading } = useQuery({
     queryKey: ['employer-dashboard-stats', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       
-      // Get total jobs count
       const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
         .select('id, status')
@@ -23,10 +22,8 @@ export function DashboardStats() {
       
       if (jobsError) throw jobsError;
       
-      // Get total applications
       let applicationsCount = 0;
       try {
-        // Fixed: Use a direct query instead of RPC to avoid TypeScript issues
         const jobIds = jobsData?.map(job => job.id) || [];
         
         if (jobIds.length > 0) {
@@ -43,38 +40,14 @@ export function DashboardStats() {
         toast.error('Error loading applications data');
       }
       
-      // Get response rate (non-pending applications / total applications)
-      let respondedCount = 0;
-      try {
-        // Fixed: Use a direct query instead of RPC to avoid TypeScript issues
-        const jobIds = jobsData?.map(job => job.id) || [];
-        
-        if (jobIds.length > 0) {
-          const { count, error } = await supabase
-            .from('applications')
-            .select('*', { count: 'exact', head: true })
-            .in('job_id', jobIds)
-            .neq('status', 'pending');
-          
-          if (error) throw error;
-          respondedCount = count || 0;
-        }
-      } catch (error) {
-        console.error('Error fetching responded applications count:', error);
-        toast.error('Error loading response rate data');
-      }
-      
       return {
         totalJobs: jobsData?.length || 0,
         activeJobs: jobsData?.filter(job => job.status === 'active').length || 0,
         totalApplications: applicationsCount,
-        responseRate: applicationsCount > 0 
-          ? Math.round((respondedCount / applicationsCount) * 100)
-          : 0
       };
     },
     enabled: !!user?.id,
-    refetchInterval: 60000 // Refetch every minute to keep stats updated
+    refetchInterval: 60000
   });
 
   if (isLoading) {
@@ -101,7 +74,7 @@ export function DashboardStats() {
     return null;
   }
 
-  const { totalJobs, activeJobs, totalApplications, responseRate } = dashboardStats;
+  const { totalJobs, activeJobs, totalApplications } = dashboardStats;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -141,17 +114,7 @@ export function DashboardStats() {
         </div>
       </div>
       
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Response Rate</p>
-            <p className="text-2xl font-bold">{responseRate}%</p>
-          </div>
-          <div className="p-3 bg-indigo-50 rounded-full">
-            <BarChart3 className="h-6 w-6 text-indigo-500" />
-          </div>
-        </div>
-      </div>
+      <ShortlistedStats />
     </div>
   );
 }

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Check, X, Mail } from "lucide-react";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
@@ -16,7 +15,28 @@ export function RecentApplicationsSection() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch applications with real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('applications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'applications'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+          queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const { data: applications = [], isLoading: isLoadingApplications } = useQuery({
     queryKey: ['employer-applications', user?.id],
     queryFn: async () => {
@@ -63,23 +83,26 @@ export function RecentApplicationsSection() {
         jobCompany?: string 
       })[];
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
     enabled: !!user?.id
   });
 
-  // Mutation to update application status
   const updateStatusMutation = useMutation({
     mutationFn: async ({ applicationId, status }: { applicationId: string; status: string }) => {
       const { error } = await supabase
         .from('applications')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', applicationId);
       
       if (error) throw error;
       return { applicationId, status };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['employer-applications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
       toast.success(`Application ${data.status === 'shortlisted' ? 'shortlisted' : data.status === 'rejected' ? 'rejected' : 'updated'}`);
     },
     onError: (error) => {
@@ -100,20 +123,10 @@ export function RecentApplicationsSection() {
     const application = applications.find(app => app.studentId === studentId);
     const student = application?.student;
     
-    if (student) {
-      setSelectedStudentId(studentId);
-      
-      // Update the application status to "contacted" in the database
-      const applicationId = application.id;
-      updateStatusMutation.mutate({ 
-        applicationId, 
-        status: 'contacted' 
-      });
-      
-      // For now, we'll just show a toast notification
-      toast.success(`Contact initiated with ${student.name} (${student.email})`);
+    if (student?.email) {
+      window.location.href = `mailto:${student.email}?subject=Regarding your job application`;
     } else {
-      toast.error('Unable to contact student. Student information not available.');
+      toast.error('Unable to contact student. Email not available.');
     }
   };
 

@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,13 +41,12 @@ export function ApplicationCard({
 
   const getBadgeVariant = (status: string) => {
     switch (status) {
-      case 'contacted':
       case 'shortlisted':
-        return 'default';
+        return 'success';
       case 'rejected':
         return 'destructive';
-      case 'interviewed':
-        return 'secondary';  // Changed from 'success' to 'secondary' to match available variants
+      case 'contacted':
+        return 'secondary';
       default:
         return 'secondary';
     }
@@ -74,30 +72,6 @@ export function ApplicationCard({
         </div>
       )}
 
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Skills:</h4>
-        <div className="flex flex-wrap gap-2">
-          {student.skills.slice(0, 4).map((skill, index) => (
-            <Badge key={index} variant="outline" className="bg-gray-50">
-              {skill}
-            </Badge>
-          ))}
-          {student.skills.length > 4 && (
-            <Badge variant="outline" className="bg-gray-50">
-              +{student.skills.length - 4} more
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Applied on:</h4>
-        <div className="text-sm text-gray-600">
-          {new Date(application.createdAt).toLocaleDateString()} 
-          ({new Date(application.createdAt).toLocaleTimeString()})
-        </div>
-      </div>
-
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         {student.resumeUrl ? (
           <a 
@@ -122,10 +96,9 @@ export function ApplicationCard({
           <Button 
             size="sm" 
             onClick={() => onContact && onContact(student.id)}
-            disabled={application.status === 'contacted'}
           >
             <Mail className="mr-2 h-4 w-4" />
-            {application.status === 'contacted' ? 'Contacted' : 'Contact'}
+            Contact
           </Button>
         </div>
       </div>
