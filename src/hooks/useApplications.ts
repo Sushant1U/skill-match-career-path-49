@@ -38,12 +38,12 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Fetch applications with student profiles in a single query
-      const { data: applications, error: applicationsError } = await supabase
+      // Fetch applications with student profiles in a single query - using JOIN syntax
+      const { data: applicationsWithStudents, error: applicationsError } = await supabase
         .from('applications')
         .select(`
           *,
-          student:profiles(*)
+          student:profiles(id, name, email, skills, location, resume_url, qualifications)
         `)
         .in('job_id', jobIds)
         .order('created_at', { ascending: false });
@@ -53,19 +53,23 @@ export const useApplications = (userId?: string) => {
         throw applicationsError;
       }
       
-      if (!applications) {
+      if (!applicationsWithStudents) {
         console.log("No applications found");
         return [];
       }
       
-      console.log("Raw applications data:", applications);
+      console.log("Raw applications data:", applicationsWithStudents);
       
       // Format the applications data for the UI
-      return applications.map(app => {
+      return applicationsWithStudents.map(app => {
+        const student = app.student;
+        
         // Log each individual application for debugging
         console.log(`Processing application ${app.id}:`, {
-          resumeUrl: app.resume_url,
-          studentResumeUrl: app.student?.resume_url
+          applicationResumeUrl: app.resume_url,
+          studentResumeUrl: student?.resume_url,
+          studentName: student?.name,
+          studentData: student
         });
         
         return {
@@ -74,27 +78,19 @@ export const useApplications = (userId?: string) => {
           studentId: app.student_id,
           status: app.status,
           createdAt: app.created_at,
-          // Explicitly log and prioritize resume URLs for debugging
-          resumeUrl: app.resume_url || (app.student?.resume_url || ''),
+          // Explicitly prioritize resume URLs
+          resumeUrl: app.resume_url || (student?.resume_url || null),
           jobTitle: jobDetailsMap[app.job_id]?.title,
           jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: app.student ? {
-            id: app.student.id,
-            name: app.student.name || 'Anonymous',
-            email: app.student.email || '',
-            skills: app.student.skills || [],
-            location: app.student.location || 'Unknown location',
-            resumeUrl: app.student.resume_url || '',
-            qualifications: app.student.qualifications || []
-          } : {
-            id: app.student_id || '',
-            name: 'Anonymous',
-            email: '',
-            skills: [],
-            location: 'Unknown location',
-            resumeUrl: '',
-            qualifications: []
-          }
+          student: student ? {
+            id: student.id,
+            name: student.name || 'Anonymous',
+            email: student.email || '',
+            skills: student.skills || [],
+            location: student.location || 'Unknown location',
+            resumeUrl: student.resume_url || '',
+            qualifications: student.qualifications || []
+          } : undefined
         };
       });
     },

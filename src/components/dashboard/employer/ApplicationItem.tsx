@@ -3,7 +3,7 @@ import { Application, Student } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Check, X, Mail, FileText } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ResumePreviewDialog } from "@/components/dashboard/student/ResumePreviewDialog";
 
 interface ApplicationItemProps {
@@ -43,8 +43,8 @@ export const ApplicationItem = ({
   };
 
   // Determine if resume is available and get the URL
-  // First check application direct resumeUrl, then check student's resumeUrl
-  const resumeUrl = application.resumeUrl || (application.student?.resumeUrl || '');
+  // Check application resumeUrl first, then student's resumeUrl
+  const resumeUrl = application.resumeUrl || (application.student?.resumeUrl || null);
   const hasResume = Boolean(resumeUrl);
   
   console.log("Resume check - Has resume:", hasResume, "Resume URL:", resumeUrl);
@@ -120,7 +120,10 @@ export const ApplicationItem = ({
           <Button 
             variant="link" 
             className="text-sm text-blue-600 hover:text-blue-800 hover:underline p-0"
-            onClick={() => setIsResumeDialogOpen(true)}
+            onClick={() => {
+              console.log("Opening resume dialog with URL:", resumeUrl);
+              setIsResumeDialogOpen(true);
+            }}
           >
             <FileText className="mr-2 h-4 w-4" />
             View Resume

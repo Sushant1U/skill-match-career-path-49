@@ -6,10 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/sonner';
 
 interface ResumePreviewDialogProps {
   isOpen: boolean;
@@ -23,6 +24,14 @@ export function ResumePreviewDialog({ isOpen, onClose, resumeUrl }: ResumePrevie
   
   console.log("Resume Preview Dialog - URL:", resumeUrl);
   
+  // Reset state when the dialog opens or URL changes
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      setLoadError(false);
+    }
+  }, [isOpen, resumeUrl]);
+
   const handleIframeLoad = () => {
     console.log("Resume iframe loaded successfully");
     setIsLoading(false);
@@ -38,6 +47,7 @@ export function ResumePreviewDialog({ isOpen, onClose, resumeUrl }: ResumePrevie
   const handleDownload = () => {
     if (resumeUrl) {
       window.open(resumeUrl, '_blank');
+      toast.success("Resume opened in a new tab");
     }
   };
 
