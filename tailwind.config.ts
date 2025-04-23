@@ -52,6 +52,16 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+                platformBlue: {
+                    light: '#0A66C2',
+                    DEFAULT: '#0A66C2',
+                    dark: '#1D3557',
+                },
+                platformPurple: {
+                    light: '#9b87f5',
+                    DEFAULT: '#5E60CE',
+                    dark: '#7E69AB',
+                },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
