@@ -43,33 +43,6 @@ export async function fetchApplicationsForEmployer(employerId: string, limit?: n
   }
 }
 
-export async function fetchStudentProfile(studentId: string): Promise<Student | null> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', studentId)
-      .single();
-    
-    if (error) throw error;
-    if (!data) return null;
-    
-    return {
-      id: data.id,
-      userId: data.id,
-      name: data.name || 'Anonymous User',
-      email: data.email,
-      skills: data.skills || [],
-      qualifications: data.qualifications || [],
-      location: data.location || 'Location not specified',
-      resumeUrl: data.resume_url,
-    };
-  } catch (error) {
-    console.error('Error fetching student profile:', error);
-    return null;
-  }
-}
-
 export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<Notification[]> {
   try {
     const { data, error } = await supabase
@@ -96,9 +69,36 @@ export async function fetchNotificationsForUser(userId: string, limit?: number):
       message: notification.message,
       read: notification.read,
       createdAt: notification.created_at,
-    })) as unknown as Notification[];
+    })) as Notification[];
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return [];
+  }
+}
+
+export async function fetchStudentProfile(studentId: string): Promise<Student | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', studentId)
+      .single();
+    
+    if (error) throw error;
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      userId: data.id,
+      name: data.name || 'Anonymous User',
+      email: data.email,
+      skills: data.skills || [],
+      qualifications: data.qualifications || [],
+      location: data.location || 'Location not specified',
+      resumeUrl: data.resume_url,
+    };
+  } catch (error) {
+    console.error('Error fetching student profile:', error);
+    return null;
   }
 }
