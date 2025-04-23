@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -26,7 +25,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Function to fetch user role safely
   const fetchUserRole = async (userId: string) => {
     try {
       const role = await getUserRole(userId);
@@ -45,7 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
     
-    // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession?.user?.id);
@@ -53,7 +50,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Use setTimeout to prevent deadlocks in the auth state callback
           setTimeout(() => {
             fetchUserRole(currentSession.user.id);
           }, 0);
@@ -64,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then initialize session
     const initSession = async () => {
       try {
         console.log("Initializing auth session");
@@ -94,8 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string, role: UserRole) => {
     try {
       const data = await handleSignUp(email, password, name, role);
-      // The auth state listener will handle setting the user and role
-      // Navigation will be handled by the protected routes once auth state updates
       console.log("Signup successful:", data);
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -108,8 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = await handleSignIn(email, password);
       console.log("Sign in successful:", data);
-      // The auth state listener will handle setting the user and role
-      // Navigation will be handled by effect in the LoginForm
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message);
@@ -120,19 +111,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       console.log("Attempting to sign out...");
-      await handleSignOut();
-      console.log("Sign out successful or no active session");
       
-      // Clear state regardless of whether there was an active session
+      handleSignOut().catch(error => {
+        console.error("Backend signout error (continuing anyway):", error);
+      });
+      
+      console.log("Clearing auth state");
       setUser(null);
       setSession(null);
       setUserRole(null);
       
-      // Navigate to login page
+      console.log("Navigating to login page");
       navigate('/login');
+      
+      toast.success("You have been signed out");
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast.error("Sign out failed: " + error.message);
     }
   };
 
