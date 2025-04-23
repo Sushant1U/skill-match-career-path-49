@@ -23,19 +23,16 @@ export function DashboardStats() {
       if (jobsError) throw jobsError;
       
       // Get total applications
-      // Explicitly type the response to avoid TypeScript errors
-      type RPCResponse = { data: number | null; error: any };
-      
-      // Need to specify the return type explicitly to handle RPC call properly
       let applicationsCount = 0;
       try {
-        // Use a type assertion that doesn't rely on the RPC method name
-        const response = await supabase.rpc('get_employer_applications_count', { 
-          employer_id: user.id 
-        });
+        // Need to use a more generic approach for RPC calls
+        const { data, error } = await supabase.rpc(
+          'get_employer_applications_count', 
+          { employer_id: user.id }
+        );
         
-        // Convert the data to a number (if it exists) or default to 0
-        applicationsCount = typeof response.data === 'number' ? response.data : 0;
+        if (error) throw error;
+        applicationsCount = Number(data) || 0;
       } catch (error) {
         console.error('Error fetching applications count:', error);
         // Fallback: query applications through jobs
@@ -55,13 +52,14 @@ export function DashboardStats() {
       // Get response rate (non-pending applications / total applications)
       let respondedCount = 0;
       try {
-        // Use a type assertion that doesn't rely on the RPC method name
-        const response = await supabase.rpc('get_employer_responded_applications_count', { 
-          employer_id: user.id 
-        });
+        // Need to use a more generic approach for RPC calls
+        const { data, error } = await supabase.rpc(
+          'get_employer_responded_applications_count', 
+          { employer_id: user.id }
+        );
         
-        // Convert the data to a number (if it exists) or default to 0
-        respondedCount = typeof response.data === 'number' ? response.data : 0;
+        if (error) throw error;
+        respondedCount = Number(data) || 0;
       } catch (error) {
         console.error('Error fetching responded applications count:', error);
         // Fallback: query responded applications through jobs
