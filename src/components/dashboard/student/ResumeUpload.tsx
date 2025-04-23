@@ -62,7 +62,7 @@ export function ResumeUpload() {
       const fileName = `${user.id}-${Date.now()}.pdf`;
       console.log('Uploading file:', fileName);
       
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('resumes')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -74,7 +74,7 @@ export function ResumeUpload() {
         throw uploadError;
       }
 
-      console.log('Upload successful:', data);
+      console.log('Upload successful:', uploadData);
 
       // Get public URL for the file
       const { data: { publicUrl } } = supabase.storage
