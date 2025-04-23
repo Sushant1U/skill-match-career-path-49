@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ResumePreviewDialogProps {
   isOpen: boolean;
@@ -20,13 +21,24 @@ export function ResumePreviewDialog({ isOpen, onClose, resumeUrl }: ResumePrevie
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   
+  console.log("Resume Preview Dialog - URL:", resumeUrl);
+  
   const handleIframeLoad = () => {
+    console.log("Resume iframe loaded successfully");
     setIsLoading(false);
   };
 
   const handleIframeError = () => {
+    console.error("Failed to load resume in iframe");
     setLoadError(true);
     setIsLoading(false);
+  };
+  
+  // Handle resume download
+  const handleDownload = () => {
+    if (resumeUrl) {
+      window.open(resumeUrl, '_blank');
+    }
   };
 
   return (
@@ -34,8 +46,19 @@ export function ResumePreviewDialog({ isOpen, onClose, resumeUrl }: ResumePrevie
       <DialogContent className="max-w-4xl h-[80vh]">
         <DialogHeader>
           <DialogTitle>Resume Preview</DialogTitle>
-          <DialogDescription>
-            Your uploaded resume
+          <DialogDescription className="flex items-center justify-between">
+            <span>Resume document</span>
+            {resumeUrl && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload}
+                className="ml-2"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            )}
           </DialogDescription>
         </DialogHeader>
         
@@ -50,7 +73,11 @@ export function ResumePreviewDialog({ isOpen, onClose, resumeUrl }: ResumePrevie
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 gap-2">
               <AlertCircle className="text-orange-500 h-10 w-10" />
               <p className="text-gray-700">Failed to load the resume. It might be blocked by your browser or unavailable.</p>
-              <p className="text-sm text-gray-500">Try opening it in a new tab.</p>
+              <p className="text-sm text-gray-500 mb-4">Try opening it in a new tab.</p>
+              <Button onClick={handleDownload} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Download Resume
+              </Button>
             </div>
           )}
 

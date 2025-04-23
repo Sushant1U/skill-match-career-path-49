@@ -42,11 +42,12 @@ export const ApplicationItem = ({
     }
   };
 
-  // Determine if resume is available
-  const hasResume = Boolean(application.student?.resumeUrl || application.resumeUrl);
-  const resumeUrl = application.student?.resumeUrl || application.resumeUrl || '';
+  // Determine if resume is available and get the URL
+  // First check application direct resumeUrl, then check student's resumeUrl
+  const resumeUrl = application.resumeUrl || (application.student?.resumeUrl || '');
+  const hasResume = Boolean(resumeUrl);
   
-  console.log("Has resume:", hasResume, "Resume URL:", resumeUrl);
+  console.log("Resume check - Has resume:", hasResume, "Resume URL:", resumeUrl);
 
   // Get student name, defaulting to Anonymous if not available
   const studentName = application.student?.name || "Anonymous Applicant";

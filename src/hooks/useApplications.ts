@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Application, Student } from "@/types";
@@ -60,33 +61,42 @@ export const useApplications = (userId?: string) => {
       console.log("Raw applications data:", applications);
       
       // Format the applications data for the UI
-      return applications.map(app => ({
-        id: app.id,
-        jobId: app.job_id,
-        studentId: app.student_id,
-        status: app.status,
-        createdAt: app.created_at,
-        resumeUrl: app.resume_url || (app.student?.resume_url || ''),
-        jobTitle: jobDetailsMap[app.job_id]?.title,
-        jobCompany: jobDetailsMap[app.job_id]?.company,
-        student: app.student ? {
-          id: app.student.id,
-          name: app.student.name || 'Anonymous',
-          email: app.student.email || '',
-          skills: app.student.skills || [],
-          location: app.student.location || 'Unknown location',
-          resumeUrl: app.student.resume_url || '',
-          qualifications: app.student.qualifications || []
-        } : {
-          id: app.student_id || '',
-          name: 'Anonymous',
-          email: '',
-          skills: [],
-          location: 'Unknown location',
-          resumeUrl: '',
-          qualifications: []
-        }
-      }));
+      return applications.map(app => {
+        // Log each individual application for debugging
+        console.log(`Processing application ${app.id}:`, {
+          resumeUrl: app.resume_url,
+          studentResumeUrl: app.student?.resume_url
+        });
+        
+        return {
+          id: app.id,
+          jobId: app.job_id,
+          studentId: app.student_id,
+          status: app.status,
+          createdAt: app.created_at,
+          // Explicitly log and prioritize resume URLs for debugging
+          resumeUrl: app.resume_url || (app.student?.resume_url || ''),
+          jobTitle: jobDetailsMap[app.job_id]?.title,
+          jobCompany: jobDetailsMap[app.job_id]?.company,
+          student: app.student ? {
+            id: app.student.id,
+            name: app.student.name || 'Anonymous',
+            email: app.student.email || '',
+            skills: app.student.skills || [],
+            location: app.student.location || 'Unknown location',
+            resumeUrl: app.student.resume_url || '',
+            qualifications: app.student.qualifications || []
+          } : {
+            id: app.student_id || '',
+            name: 'Anonymous',
+            email: '',
+            skills: [],
+            location: 'Unknown location',
+            resumeUrl: '',
+            qualifications: []
+          }
+        };
+      });
     },
     refetchInterval: 30000,
     enabled: !!userId
