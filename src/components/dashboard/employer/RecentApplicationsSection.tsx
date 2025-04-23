@@ -14,6 +14,7 @@ export function RecentApplicationsSection() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Set up realtime subscription for applications changes
     const channel = supabase
       .channel('applications-changes')
       .on(
@@ -23,7 +24,8 @@ export function RecentApplicationsSection() {
           schema: 'public',
           table: 'applications'
         },
-        () => {
+        (payload) => {
+          console.log('Realtime update received:', payload);
           queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
           queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
         }
