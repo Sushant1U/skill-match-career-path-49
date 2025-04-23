@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 interface ApplicationItemProps {
   application: Application & {
-    student: Student | null;
+    student: Student;
     jobTitle?: string;
     jobCompany?: string;
   };
@@ -24,12 +24,15 @@ export const ApplicationItem = ({
 }: ApplicationItemProps) => {
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
   const navigate = useNavigate();
+  
+  console.log("ApplicationItem received:", application);
 
   const handleContactStudent = () => {
-    console.log("Contact student:", application.student);
     if (application.student?.email) {
+      console.log("Contact student with email:", application.student.email);
       window.location.href = `mailto:${application.student.email}?subject=Regarding your job application`;
     } else {
+      console.error("Unable to contact student. Email not available:", application.student);
       toast.error('Unable to contact student. Email not available.');
     }
   };
@@ -38,7 +41,8 @@ export const ApplicationItem = ({
     navigate('/employer/shortlisted');
   };
 
-  const hasResume = application.student?.resumeUrl && application.student.resumeUrl !== '';
+  const hasResume = Boolean(application.student?.resumeUrl && application.student.resumeUrl !== '');
+  console.log("Has resume:", hasResume, "Resume URL:", application.student?.resumeUrl);
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">

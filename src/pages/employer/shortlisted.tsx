@@ -18,7 +18,7 @@ export default function ShortlistedApplicantsPage() {
   const navigate = useNavigate();
   const { bucketExists, isChecking } = useResumeStorage();
   const [isLoading, setIsLoading] = useState(true);
-  const [applications, setApplications] = useState<(Application & { student: Student | null, jobTitle?: string, jobCompany?: string })[]>([]);
+  const [applications, setApplications] = useState<(Application & { student: Student, jobTitle?: string, jobCompany?: string })[]>([]);
 
   useEffect(() => {
     async function fetchShortlistedApplications() {
@@ -94,10 +94,18 @@ export default function ShortlistedApplicantsPage() {
             location: app.student.location || 'Location not specified',
             resumeUrl: app.student.resume_url || '',
             qualifications: app.student.qualifications || []
-          } : null
+          } : {
+            id: '',
+            name: 'Anonymous',
+            email: '',
+            skills: [],
+            location: 'Unknown location',
+            resumeUrl: '',
+            qualifications: []
+          }
         }));
 
-        console.log("Formatted applications:", formattedApplications);
+        console.log("Formatted shortlisted applications:", formattedApplications);
         setApplications(formattedApplications);
       } catch (error) {
         console.error('Error fetching shortlisted applications:', error);
@@ -107,7 +115,9 @@ export default function ShortlistedApplicantsPage() {
       }
     }
 
-    fetchShortlistedApplications();
+    if (!isChecking) {
+      fetchShortlistedApplications();
+    }
   }, [user?.id, isChecking, bucketExists]);
 
   const handleContact = (studentId: string) => {

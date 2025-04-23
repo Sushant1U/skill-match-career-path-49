@@ -15,7 +15,7 @@ export default function ApplicantsPage() {
   const { bucketExists, isChecking } = useResumeStorage();
   const [isLoading, setIsLoading] = useState(true);
   const [applications, setApplications] = useState<(Application & { 
-    student: Student | null, 
+    student: Student, 
     jobTitle?: string, 
     jobCompany?: string 
   })[]>([]);
@@ -88,7 +88,15 @@ export default function ApplicantsPage() {
             location: app.student.location || 'Location not specified',
             resumeUrl: app.student.resume_url || '',
             qualifications: app.student.qualifications || []
-          } : null
+          } : {
+            id: '',
+            name: 'Anonymous',
+            email: '',
+            skills: [],
+            location: 'Unknown location',
+            resumeUrl: '',
+            qualifications: []
+          }
         }));
         
         console.log("Formatted applications:", formattedApplications);

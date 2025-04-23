@@ -13,14 +13,39 @@ export const useApplications = (userId?: string) => {
       if (!userId) return [];
       
       console.log("Fetching applications for employer:", userId);
+      
+      // First get all jobs posted by this employer
+      const { data: jobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('id, title, company')
+        .eq('employer_id', userId);
+      
+      if (jobsError) {
+        console.error("Error fetching jobs:", jobsError);
+        throw jobsError;
+      }
+      
+      if (!jobs || jobs.length === 0) {
+        console.log("No jobs found for employer");
+        return [];
+      }
+      
+      const jobIds = jobs.map(job => job.id);
+      console.log("Found job IDs:", jobIds);
+      
+      const jobDetailsMap = jobs.reduce((acc, job) => {
+        acc[job.id] = { title: job.title, company: job.company };
+        return acc;
+      }, {} as Record<string, { title: string, company: string }>);
+      
+      // Now get applications for these jobs with student information
       const { data, error } = await supabase
         .from('applications')
         .select(`
           *,
-          job:jobs(title, company),
-          student:profiles(id, name, email, skills, location, resume_url, qualifications)
+          student:profiles(id, name, email, location, skills, qualifications, resume_url)
         `)
-        .eq('jobs.employer_id', userId)
+        .in('job_id', jobIds)
         .order('created_at', { ascending: false })
         .limit(5);
       
@@ -41,8 +66,8 @@ export const useApplications = (userId?: string) => {
           status: app.status,
           createdAt: app.created_at,
           resumeUrl: app.resume_url || app.student?.resume_url,
-          jobTitle: app.job?.title,
-          jobCompany: app.job?.company,
+          jobTitle: jobDetailsMap[app.job_id]?.title,
+          jobCompany: jobDetailsMap[app.job_id]?.company,
           student: app.student ? {
             id: app.student.id,
             name: app.student.name || 'Anonymous',
@@ -51,10 +76,18 @@ export const useApplications = (userId?: string) => {
             location: app.student.location || 'Location not specified',
             resumeUrl: app.student.resume_url || '',
             qualifications: app.student.qualifications || []
-          } : null
+          } : {
+            id: '',
+            name: 'Anonymous',
+            email: '',
+            skills: [],
+            location: 'Unknown location',
+            resumeUrl: '',
+            qualifications: []
+          }
         };
       }) as (Application & { 
-        student: Student | null, 
+        student: Student, 
         jobTitle?: string, 
         jobCompany?: string 
       })[];

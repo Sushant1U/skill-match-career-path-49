@@ -44,6 +44,8 @@ export function RecentApplicationsSection() {
     deleteApplication
   } = useApplications(user?.id);
 
+  console.log("Applications in RecentApplicationsSection:", applications);
+
   const handleShortlist = (applicationId: string) => {
     updateStatus(applicationId, 'shortlisted');
   };

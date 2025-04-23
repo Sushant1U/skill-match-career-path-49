@@ -19,6 +19,7 @@ export function useResumeStorage() {
         if (bucketsError) {
           console.error("Error checking buckets:", bucketsError);
           setBucketExists(false);
+          setIsChecking(false);
           return;
         }
         
