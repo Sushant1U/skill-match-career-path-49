@@ -15,51 +15,79 @@ export function useResumeUpload() {
   // Check if the resumes bucket exists when the hook is initialized
   useEffect(() => {
     const checkBucketExists = async () => {
+      if (!user?.id) return;
+      
       try {
-        const { data: buckets, error } = await supabase.storage.listBuckets();
+        // Check if bucket exists by trying to list files in it
+        const { data, error } = await supabase.storage
+          .from('resumes')
+          .list('', { limit: 1 });
+        
         if (error) {
-          console.error("Error checking buckets:", error);
-          return;
-        }
-
-        const resumeBucket = buckets?.find(bucket => bucket.name === 'resumes');
-        if (resumeBucket) {
-          console.log("Resumes bucket exists");
-          setBucketExists(true);
-        } else {
-          console.warn("Resumes bucket does not exist. Creating it...");
-          try {
-            const { data, error } = await supabase.storage.createBucket('resumes', {
-              public: true,
-              fileSizeLimit: 5 * 1024 * 1024 // 5MB
-            });
-            
-            if (error) {
-              console.error("Error creating bucket:", error);
-            } else {
-              console.log("Bucket created successfully:", data);
-              setBucketExists(true);
+          console.error("Error checking resumes bucket:", error);
+          
+          if (error.message.includes('The resource was not found')) {
+            console.warn("Resumes bucket does not exist yet. Creating it...");
+            try {
+              const { data: bucketData, error: bucketError } = await supabase.storage.createBucket('resumes', {
+                public: true,
+                fileSizeLimit: 5 * 1024 * 1024 // 5MB
+              });
+              
+              if (bucketError) {
+                console.error("Error creating bucket:", bucketError);
+                setBucketExists(false);
+              } else {
+                console.log("Bucket created successfully:", bucketData);
+                setBucketExists(true);
+              }
+            } catch (createError) {
+              console.error("Error creating bucket:", createError);
+              setBucketExists(false);
             }
-          } catch (error) {
-            console.error("Error creating bucket:", error);
+          } else {
+            setBucketExists(false);
           }
+        } else {
+          console.log("Resumes bucket exists:", data);
+          setBucketExists(true);
         }
       } catch (error) {
-        console.error("Error checking buckets:", error);
+        console.error("Error checking bucket:", error);
+        setBucketExists(false);
       }
     };
 
-    if (user) {
-      checkBucketExists();
-    }
-  }, [user]);
+    checkBucketExists();
+  }, [user?.id]);
 
   const resumeUploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user?.id) throw new Error('User not authenticated');
-      if (!bucketExists) throw new Error('Storage bucket not available');
+      
+      // Ensure bucket exists
+      if (!bucketExists) {
+        try {
+          // One more attempt to create the bucket if it doesn't exist
+          const { data, error } = await supabase.storage.createBucket('resumes', {
+            public: true,
+            fileSizeLimit: 5 * 1024 * 1024 // 5MB
+          });
+          
+          if (error && !error.message.includes('already exists')) {
+            console.error("Failed to create bucket:", error);
+            throw new Error('Storage bucket not available');
+          } else {
+            console.log("Bucket created or already exists");
+          }
+        } catch (error) {
+          console.error("Error creating bucket:", error);
+          throw new Error('Storage bucket not available');
+        }
+      }
 
       setFileError(null);
+      
       // Check file type
       if (file.type !== 'application/pdf') {
         setFileError('Please upload a PDF file');

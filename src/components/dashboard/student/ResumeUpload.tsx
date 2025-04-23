@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/sonner';
 export function ResumeUpload() {
   const { user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const { uploading, setUploading, resumeUploadMutation, fileError } = useResumeUpload();
+  const { uploading, setUploading, resumeUploadMutation, fileError, bucketExists } = useResumeUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Query to check if user already has a resume
@@ -46,6 +46,7 @@ export function ResumeUpload() {
 
     try {
       setUploading(true);
+      console.log("Starting upload for file:", file.name);
       await resumeUploadMutation.mutateAsync(file);
     } catch (error) {
       console.error('Error during upload:', error);
@@ -119,6 +120,13 @@ export function ResumeUpload() {
         <div className="flex items-center gap-2 mt-2 text-xs text-red-500">
           <AlertCircle className="h-3 w-3" />
           {fileError}
+        </div>
+      )}
+      
+      {!bucketExists && (
+        <div className="flex items-center gap-2 mt-2 text-xs text-amber-500">
+          <AlertCircle className="h-3 w-3" />
+          Storage setup in progress. If upload fails, please try again in a moment.
         </div>
       )}
       
