@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +43,7 @@ export function ApplicationCard({
   const getBadgeVariant = (status: string) => {
     switch (status) {
       case 'shortlisted':
-        return 'success';
+        return 'secondary';
       case 'rejected':
         return 'destructive';
       case 'contacted':

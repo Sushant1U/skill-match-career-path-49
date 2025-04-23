@@ -13,16 +13,24 @@ export function ShortlistedStats() {
     queryFn: async () => {
       if (!user?.id) return 0;
       
+      // First get all jobs for this employer
+      const { data: jobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('employer_id', user.id);
+      
+      if (jobsError) throw jobsError;
+      if (!jobs || jobs.length === 0) return 0;
+      
+      // Extract job IDs
+      const jobIds = jobs.map(job => job.id);
+      
+      // Now count shortlisted applications for these jobs
       const { count, error } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'shortlisted')
-        .in('job_id', (
-          supabase
-            .from('jobs')
-            .select('id')
-            .eq('employer_id', user.id)
-        ));
+        .in('job_id', jobIds);
       
       if (error) throw error;
       return count || 0;
