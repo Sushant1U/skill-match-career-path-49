@@ -38,7 +38,7 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Fetch applications with student profiles in a single query
+      // Enhanced query to fetch applications with student profiles
       const { data: applications, error: applicationsError } = await supabase
         .from('applications')
         .select(`
@@ -48,7 +48,7 @@ export const useApplications = (userId?: string) => {
           status,
           created_at,
           resume_url,
-          student:profiles!student_id(
+          profiles:profiles!student_id(
             id,
             name,
             email,
@@ -68,25 +68,29 @@ export const useApplications = (userId?: string) => {
       console.log("Raw applications with student data:", applications);
       
       // Format the applications data for the UI
-      return applications.map(app => ({
-        id: app.id,
-        jobId: app.job_id,
-        studentId: app.student_id,
-        status: app.status,
-        createdAt: app.created_at,
-        resumeUrl: app.resume_url || (app.student?.resume_url || null),
-        jobTitle: jobDetailsMap[app.job_id]?.title,
-        jobCompany: jobDetailsMap[app.job_id]?.company,
-        student: app.student ? {
-          id: app.student.id,
-          name: app.student.name || 'Anonymous',
-          email: app.student.email || '',
-          skills: app.student.skills || [],
-          location: app.student.location || 'Unknown location',
-          resumeUrl: app.student.resume_url || '',
-          qualifications: []
-        } : null
-      }));
+      return applications.map(app => {
+        const student = app.profiles;
+        
+        return {
+          id: app.id,
+          jobId: app.job_id,
+          studentId: app.student_id,
+          status: app.status,
+          createdAt: app.created_at,
+          resumeUrl: app.resume_url || (student?.resume_url || null),
+          jobTitle: jobDetailsMap[app.job_id]?.title,
+          jobCompany: jobDetailsMap[app.job_id]?.company,
+          student: student ? {
+            id: student.id,
+            name: student.name || 'Anonymous',
+            email: student.email || '',
+            skills: student.skills || [],
+            location: student.location || 'Unknown location',
+            resumeUrl: student.resume_url || '',
+            qualifications: []
+          } : null
+        };
+      });
     },
     refetchInterval: 30000,
     enabled: !!userId
