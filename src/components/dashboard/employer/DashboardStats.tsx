@@ -24,7 +24,10 @@ export function DashboardStats() {
       
       // Get total applications
       const { data: applicationsData, error: applicationsError } = await supabase
-        .rpc('get_employer_applications_count', { employer_id: user.id });
+        .rpc('get_employer_applications_count', { employer_id: user.id }) as { 
+          data: number | null; 
+          error: any;
+        };
       
       // If the RPC doesn't exist, fallback to a regular query
       let applicationsCount = 0;
@@ -49,7 +52,10 @@ export function DashboardStats() {
       
       // Get response rate (non-pending applications / total applications)
       const { data: respondedData, error: respondedError } = await supabase
-        .rpc('get_employer_responded_applications_count', { employer_id: user.id });
+        .rpc('get_employer_responded_applications_count', { employer_id: user.id }) as {
+          data: number | null;
+          error: any;
+        };
       
       let respondedCount = 0;
       if (respondedError) {
