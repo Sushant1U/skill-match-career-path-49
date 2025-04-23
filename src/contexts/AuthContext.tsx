@@ -26,28 +26,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Function to fetch user role safely
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const role = await getUserRole(userId);
+      console.log("Fetched user role:", role);
+      setUserRole(role);
+      return role;
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      setUserRole(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     console.log("AuthProvider: Setting up auth state listener");
     
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.id);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
-        if (session?.user) {
-          // Fetch user role on auth state change
-          try {
-            const role = await getUserRole(session.user.id);
-            console.log("Fetched user role:", role);
-            setUserRole(role);
-          } catch (error) {
-            console.error("Error fetching user role:", error);
-            setUserRole(null);
-          }
+        if (currentSession?.user) {
+          // Use setTimeout to prevent deadlocks in the auth state callback
+          setTimeout(() => {
+            fetchUserRole(currentSession.user.id);
+          }, 0);
         } else {
           setUserRole(null);
+          setLoading(false);
         }
       }
     );
@@ -56,23 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initSession = async () => {
       try {
         console.log("Initializing auth session");
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
-        if (session?.user) {
-          try {
-            const role = await getUserRole(session.user.id);
-            console.log("Initial user role:", role);
-            setUserRole(role);
-          } catch (error) {
-            console.error("Error fetching initial user role:", error);
-            setUserRole(null);
-          }
+        if (currentSession?.user) {
+          await fetchUserRole(currentSession.user.id);
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error("Error initializing session:", error);
-      } finally {
         setLoading(false);
       }
     };

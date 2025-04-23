@@ -6,6 +6,16 @@ import { toast } from '@/components/ui/sonner';
 export async function getUserRole(userId: string): Promise<UserRole | null> {
   try {
     console.log("Fetching user role for:", userId);
+    
+    // First check user metadata - this is faster than a database query
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user?.user_metadata?.role) {
+      const role = userData.user.user_metadata.role as UserRole;
+      console.log("Found role in user metadata:", role);
+      return role;
+    }
+    
+    // If no role in metadata, try the profiles table
     const { data, error } = await supabase
       .from('profiles')
       .select('role')
@@ -13,11 +23,11 @@ export async function getUserRole(userId: string): Promise<UserRole | null> {
       .single();
       
     if (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error fetching user role from profiles:', error);
       throw error;
     }
     
-    console.log("User role data:", data);
+    console.log("User role data from profiles:", data);
     return data?.role as UserRole || null;
   } catch (error) {
     console.error('Error in getUserRole:', error);

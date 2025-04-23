@@ -19,7 +19,9 @@ export function LoginForm() {
 
   // Add effect to redirect user based on role after successful login
   useEffect(() => {
-    if (user && userRole && !loading) {
+    if (user && !loading) {
+      console.log("Login successful, redirecting based on role:", userRole);
+      
       if (userRole === 'student') {
         navigate('/student-dashboard');
       } else if (userRole === 'employer') {
