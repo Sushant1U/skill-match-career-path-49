@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginForm() {
   const navigate = useNavigate();
-  const { signIn, userRole, loading } = useAuth();
+  const { signIn, userRole, user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -16,6 +16,17 @@ export function LoginForm() {
     email: '',
     password: '',
   });
+
+  // Add effect to redirect user based on role after successful login
+  useEffect(() => {
+    if (user && userRole && !loading) {
+      if (userRole === 'student') {
+        navigate('/student-dashboard');
+      } else if (userRole === 'employer') {
+        navigate('/employer-dashboard');
+      }
+    }
+  }, [user, userRole, loading, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,9 +44,7 @@ export function LoginForm() {
     try {
       // Call sign in from Auth context
       await signIn(formData.email, formData.password);
-      
-      // Navigation will be handled by the onAuthStateChange listener in AuthContext
-      // or automatic redirects in protected routes
+      // Redirection will now be handled by the useEffect above
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
     } finally {

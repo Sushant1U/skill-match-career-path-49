@@ -27,69 +27,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("AuthProvider: Setting up auth state listener");
+    
+    // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const role = await getUserRole(session.user.id);
-          setUserRole(role);
+          // Fetch user role on auth state change
+          try {
+            const role = await getUserRole(session.user.id);
+            console.log("Fetched user role:", role);
+            setUserRole(role);
+          } catch (error) {
+            console.error("Error fetching user role:", error);
+            setUserRole(null);
+          }
         } else {
           setUserRole(null);
         }
       }
     );
 
-    // Initialize session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        getUserRole(session.user.id)
-          .then(role => setUserRole(role))
-          .finally(() => setLoading(false));
-      } else {
+    // Then initialize session
+    const initSession = async () => {
+      try {
+        console.log("Initializing auth session");
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          try {
+            const role = await getUserRole(session.user.id);
+            console.log("Initial user role:", role);
+            setUserRole(role);
+          } catch (error) {
+            console.error("Error fetching initial user role:", error);
+            setUserRole(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing session:", error);
+      } finally {
         setLoading(false);
       }
-    });
+    };
+
+    initSession();
 
     return () => {
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
   }, []);
 
   const signUp = async (email: string, password: string, name: string, role: UserRole) => {
     try {
-      await handleSignUp(email, password, name, role);
-      if (role === 'student') {
-        navigate('/student-dashboard');
-      } else {
-        navigate('/employer-dashboard');
-      }
+      const data = await handleSignUp(email, password, name, role);
+      // The auth state listener will handle setting the user and role
+      // Navigation will be handled by the protected routes once auth state updates
+      console.log("Signup successful:", data);
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast.error(error.message);
+      throw error;
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      await handleSignIn(email, password);
+      const data = await handleSignIn(email, password);
+      console.log("Sign in successful:", data);
+      // The auth state listener will handle setting the user and role
+      // Navigation will be handled by effect in the LoginForm
     } catch (error: any) {
+      console.error("Login error:", error);
       toast.error(error.message);
+      throw error;
     }
   };
 
   const signOut = async () => {
     try {
       await handleSignOut();
+      console.log("Sign out successful");
       setUser(null);
       setSession(null);
       setUserRole(null);
       navigate('/login');
     } catch (error: any) {
+      console.error("Sign out error:", error);
       toast.error(error.message);
+      throw error;
     }
   };
 
@@ -97,24 +130,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error('No user logged in');
       await updateUserProfile(user.id, data);
+      console.log("Profile updated successfully");
     } catch (error: any) {
+      console.error("Update profile error:", error);
       toast.error('Error updating profile: ' + error.message);
+      throw error;
     }
   };
 
+  const contextValue = {
+    user,
+    session,
+    userRole,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    updateProfile,
+  };
+
+  console.log("AuthContext current state:", { 
+    hasUser: !!user, 
+    role: userRole, 
+    isLoading: loading 
+  });
+
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        session,
-        userRole, 
-        loading, 
-        signUp, 
-        signIn, 
-        signOut,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
