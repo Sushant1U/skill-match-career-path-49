@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUp, FileDown, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ export function ResumeUpload() {
   const { user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState(false);
   const { uploading, setUploading, resumeUploadMutation, fileError } = useResumeUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Query to check if user already has a resume
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -65,31 +66,43 @@ export function ResumeUpload() {
     setPreviewOpen(true);
   };
 
+  // This function will trigger file input click
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+      console.log("File input clicked");
+    }
+  };
+
   return (
     <div className="mt-4">
-      <label htmlFor="resume-upload" className="cursor-pointer block w-full">
-        <Button className="w-full" variant="outline" disabled={uploading}>
-          {uploading ? (
-            <>
-              <Spinner size="sm" className="mr-2" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <FileUp className="mr-2 h-4 w-4" />
-              Upload Resume (PDF, Max 5MB)
-            </>
-          )}
-        </Button>
-        <input
-          id="resume-upload"
-          type="file"
-          className="hidden"
-          accept=".pdf"
-          onChange={handleFileUpload}
-          disabled={uploading}
-        />
-      </label>
+      <Button 
+        className="w-full" 
+        variant="outline" 
+        disabled={uploading}
+        onClick={triggerFileInput}
+        type="button"
+      >
+        {uploading ? (
+          <>
+            <Spinner size="sm" className="mr-2" />
+            Uploading...
+          </>
+        ) : (
+          <>
+            <FileUp className="mr-2 h-4 w-4" />
+            Upload Resume (PDF, Max 5MB)
+          </>
+        )}
+      </Button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf"
+        onChange={handleFileUpload}
+        disabled={uploading}
+      />
       
       {profile?.resume_url && (
         <Button 

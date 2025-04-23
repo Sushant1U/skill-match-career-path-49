@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,26 +10,54 @@ export function useResumeUpload() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [bucketExists, setBucketExists] = useState(false);
 
-  // Ensure the resume storage bucket exists
-  const ensureResumeBucketExists = async () => {
-    try {
-      // Check if bucket exists
-      const { data: buckets, error } = await supabase.storage.listBuckets();
-      if (error) throw error;
+  // Check if the resumes bucket exists when the hook is initialized
+  useEffect(() => {
+    const checkBucketExists = async () => {
+      try {
+        const { data: buckets, error } = await supabase.storage.listBuckets();
+        if (error) {
+          console.error("Error checking buckets:", error);
+          return;
+        }
 
-      const resumeBucket = buckets?.find(bucket => bucket.name === 'resumes');
-      if (!resumeBucket) {
-        console.warn('Resumes bucket does not exist. Uploads may fail.');
+        const resumeBucket = buckets?.find(bucket => bucket.name === 'resumes');
+        if (resumeBucket) {
+          console.log("Resumes bucket exists");
+          setBucketExists(true);
+        } else {
+          console.warn("Resumes bucket does not exist. Creating it...");
+          try {
+            const { data, error } = await supabase.storage.createBucket('resumes', {
+              public: true,
+              fileSizeLimit: 5 * 1024 * 1024 // 5MB
+            });
+            
+            if (error) {
+              console.error("Error creating bucket:", error);
+            } else {
+              console.log("Bucket created successfully:", data);
+              setBucketExists(true);
+            }
+          } catch (error) {
+            console.error("Error creating bucket:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking buckets:", error);
       }
-    } catch (error) {
-      console.error('Error checking resumes bucket:', error);
+    };
+
+    if (user) {
+      checkBucketExists();
     }
-  };
+  }, [user]);
 
   const resumeUploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user?.id) throw new Error('User not authenticated');
+      if (!bucketExists) throw new Error('Storage bucket not available');
 
       setFileError(null);
       // Check file type
@@ -44,13 +72,12 @@ export function useResumeUpload() {
         setFileError('File size must be less than 5MB');
         throw new Error('File size must be less than 5MB');
       }
-
-      // Ensure bucket exists
-      await ensureResumeBucketExists();
-
+      
       const fileName = `${user.id}-${Date.now()}.pdf`;
       
       try {
+        console.log('Uploading resume...', fileName);
+        
         // Upload the file
         const { error: uploadError, data: uploadData } = await supabase.storage
           .from('resumes')
@@ -63,6 +90,8 @@ export function useResumeUpload() {
           console.error('Upload error:', uploadError);
           throw uploadError;
         }
+
+        console.log('Upload successful:', uploadData);
 
         // Get public URL for the file
         const { data: { publicUrl } } = supabase.storage
@@ -106,6 +135,7 @@ export function useResumeUpload() {
     setUploading,
     resumeUploadMutation,
     fileError,
-    setFileError
+    setFileError,
+    bucketExists
   };
 }
