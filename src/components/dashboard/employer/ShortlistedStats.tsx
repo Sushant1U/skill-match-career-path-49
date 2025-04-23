@@ -37,10 +37,10 @@ export function ShortlistedStats() {
       const jobIds = jobs.map(job => job.id);
       console.log("Found job IDs for shortlisted count:", jobIds);
       
-      // Now count shortlisted applications for these jobs using count() directly
-      const { count, error } = await supabase
+      // Now count shortlisted applications for these jobs
+      const { data, error, count } = await supabase
         .from('applications')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: false })
         .eq('status', 'shortlisted')
         .in('job_id', jobIds);
       
@@ -49,8 +49,9 @@ export function ShortlistedStats() {
         throw error;
       }
       
-      console.log("Shortlisted applications count:", count);
-      return count || 0;
+      const actualCount = count || (data ? data.length : 0);
+      console.log("Shortlisted applications count:", actualCount);
+      return actualCount;
     },
     enabled: !!user?.id,
     refetchInterval: 30000

@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 interface ApplicationItemProps {
   application: Application & {
-    student: Student;
+    student?: Student;
     jobTitle?: string;
     jobCompany?: string;
   };
@@ -36,10 +36,6 @@ export const ApplicationItem = ({
       console.error("Unable to contact student. Email not available:", application.student);
       toast.error('Unable to contact student. Email not available.');
     }
-  };
-
-  const handleViewShortlisted = () => {
-    navigate('/employer/shortlisted');
   };
 
   const hasResume = Boolean(application.student?.resumeUrl || application.resumeUrl);
@@ -127,6 +123,7 @@ export const ApplicationItem = ({
         <Button 
           size="sm" 
           onClick={handleContactStudent}
+          disabled={!application.student?.email}
         >
           <Mail className="mr-2 h-4 w-4" />
           Contact

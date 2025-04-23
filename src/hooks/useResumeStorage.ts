@@ -23,27 +23,31 @@ export function useResumeStorage() {
           return;
         }
         
-        if (bucketError && !bucketError.message.includes('The resource was not found')) {
-          console.error("Error checking bucket:", bucketError);
-          // If error is not "bucket not found", exit with error
-          setBucketExists(false);
-          setIsChecking(false);
-          return;
-        }
-        
-        // If we get here, bucket doesn't exist, so create it
-        console.log("Resumes bucket does not exist. Creating it...");
-        const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
-          public: true,
-          fileSizeLimit: 10 * 1024 * 1024 // 10MB
-        });
-        
-        if (createError) {
-          console.error("Error creating bucket:", createError);
-          setBucketExists(false);
-        } else {
-          console.log("Bucket created successfully:", createData);
-          setBucketExists(true);
+        if (bucketError) {
+          console.log("Bucket error response:", bucketError);
+          
+          // If error is not "bucket not found", log and exit with error
+          if (!bucketError.message.includes('The resource was not found')) {
+            console.error("Error checking bucket:", bucketError);
+            setBucketExists(false);
+            setIsChecking(false);
+            return;
+          }
+          
+          // If we get here, bucket doesn't exist, so create it
+          console.log("Resumes bucket does not exist. Creating it...");
+          const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
+            public: true,
+            fileSizeLimit: 10 * 1024 * 1024 // 10MB
+          });
+          
+          if (createError) {
+            console.error("Error creating bucket:", createError);
+            setBucketExists(false);
+          } else {
+            console.log("Bucket created successfully:", createData);
+            setBucketExists(true);
+          }
         }
       } catch (error) {
         console.error("Exception during bucket check or creation:", error);

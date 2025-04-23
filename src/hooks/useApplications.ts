@@ -38,27 +38,75 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Fetch applications with student profiles in a single join query
-      const { data: applicationsWithProfiles, error: joinError } = await supabase
+      // First get all application IDs for this employer's jobs
+      const { data: applicationsList, error: applicationsError } = await supabase
         .from('applications')
-        .select(`
-          *,
-          profiles:student_id(*)
-        `)
+        .select('id, job_id, student_id, status, created_at, resume_url')
         .in('job_id', jobIds)
         .order('created_at', { ascending: false })
         .limit(5);
       
-      if (joinError) {
-        console.error("Error fetching applications with profiles:", joinError);
-        throw joinError;
+      if (applicationsError) {
+        console.error("Error fetching applications:", applicationsError);
+        throw applicationsError;
       }
       
-      console.log("Raw applications with profiles data:", applicationsWithProfiles);
+      if (!applicationsList || applicationsList.length === 0) {
+        console.log("No applications found");
+        return [];
+      }
+      
+      console.log("Raw applications data:", applicationsList);
+      
+      // Now fetch student profiles for these applications
+      const studentIds = applicationsList.map(app => app.student_id).filter(Boolean);
+      
+      if (studentIds.length === 0) {
+        console.log("No student IDs found in applications");
+        return applicationsList.map(app => ({
+          id: app.id,
+          jobId: app.job_id,
+          studentId: app.student_id,
+          status: app.status,
+          createdAt: app.created_at,
+          resumeUrl: app.resume_url || '',
+          jobTitle: jobDetailsMap[app.job_id]?.title,
+          jobCompany: jobDetailsMap[app.job_id]?.company,
+          student: {
+            id: '',
+            name: 'Anonymous',
+            email: '',
+            skills: [],
+            location: 'Unknown location',
+            resumeUrl: '',
+            qualifications: []
+          }
+        }));
+      }
+
+      console.log("Fetching student profiles for IDs:", studentIds);
+      
+      const { data: studentProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', studentIds);
+      
+      if (profilesError) {
+        console.error("Error fetching student profiles:", profilesError);
+        throw profilesError;
+      }
+      
+      console.log("Student profiles fetched:", studentProfiles);
+      
+      // Create a map of student profiles by ID for easy lookup
+      const studentProfilesMap = studentProfiles?.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, any>) || {};
       
       // Format the data for consumption by the UI
-      return applicationsWithProfiles.map(app => {
-        const studentProfile = app.profiles;
+      return applicationsList.map(app => {
+        const studentProfile = app.student_id ? studentProfilesMap[app.student_id] : null;
         
         return {
           id: app.id,
@@ -78,7 +126,7 @@ export const useApplications = (userId?: string) => {
             resumeUrl: studentProfile.resume_url || '',
             qualifications: studentProfile.qualifications || []
           } : {
-            id: '',
+            id: app.student_id || '',
             name: 'Anonymous',
             email: '',
             skills: [],

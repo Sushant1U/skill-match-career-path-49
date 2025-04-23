@@ -28,6 +28,7 @@ export function RecentApplicationsSection() {
           console.log('Realtime update received:', payload);
           queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
           queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['employer-shortlisted-count'] });
         }
       )
       .subscribe();
