@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
+import { Link } from 'react-router-dom';
 
 export function ProfileSection() {
   const { user } = useAuth();
@@ -49,14 +50,12 @@ export function ProfileSection() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
     
-    // Check file type (PDF, DOC, DOCX)
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!allowedTypes.includes(file.type)) {
       toast.error('Please upload a PDF or Word document');
       return;
     }
     
-    // Check file size (max 5MB)
     const maxSizeMB = 5;
     if (file.size > maxSizeMB * 1024 * 1024) {
       toast.error(`File size exceeds ${maxSizeMB}MB limit`);
@@ -66,7 +65,6 @@ export function ProfileSection() {
     try {
       setUploading(true);
       
-      // Upload file to Supabase storage
       const fileName = `${user.id}-${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resumes')
@@ -77,12 +75,10 @@ export function ProfileSection() {
         
       if (uploadError) throw uploadError;
       
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('resumes')
         .getPublicUrl(fileName);
       
-      // Update profile with resume URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -93,7 +89,6 @@ export function ProfileSection() {
       
       if (updateError) throw updateError;
 
-      // Update local state
       queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
       
       toast.success('Resume uploaded successfully');
@@ -160,39 +155,23 @@ export function ProfileSection() {
             >
               View Current Resume
             </a>
-            <label htmlFor="resume-upload" className="cursor-pointer">
-              <Button variant="outline" disabled={uploading}>
+            <Link to="/profile/edit" className="cursor-pointer">
+              <Button variant="outline">
                 <FileUp className="mr-2 h-4 w-4" />
-                {uploading ? 'Uploading...' : 'Update Resume'}
+                Update Resume
               </Button>
-              <input
-                id="resume-upload"
-                type="file"
-                className="hidden"
-                accept=".pdf,.doc,.docx"
-                onChange={handleFileUpload}
-                disabled={uploading}
-              />
-            </label>
+            </Link>
           </div>
         ) : (
-          <label htmlFor="resume-upload" className="cursor-pointer">
-            <Button className="w-full" variant="outline" disabled={uploading}>
+          <Link to="/profile/edit" className="block w-full">
+            <Button className="w-full" variant="outline">
               <FileUp className="mr-2 h-4 w-4" />
-              {uploading ? 'Uploading...' : 'Upload Resume'}
+              Upload Resume
             </Button>
-            <input
-              id="resume-upload"
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx"
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-          </label>
+          </Link>
         )}
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Accepted formats: PDF, DOC, DOCX. Max size: 5MB.
+          Please go to the Profile Edit page to upload or update your resume
         </p>
       </div>
     </DashboardCard>

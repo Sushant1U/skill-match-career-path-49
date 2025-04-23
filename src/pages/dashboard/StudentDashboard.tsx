@@ -8,6 +8,8 @@ import { JobSearchSection } from '@/components/dashboard/student/JobSearchSectio
 import { AppliedJobsSection } from '@/components/dashboard/student/AppliedJobsSection';
 import { RecommendedJobsSection } from '@/components/dashboard/student/RecommendedJobsSection';
 import { NotificationsSection } from '@/components/dashboard/student/NotificationsSection';
+import { Link } from 'react-router-dom';
+import { FileUp } from 'lucide-react';
 
 export default function StudentDashboard() {
   return (
@@ -15,9 +17,14 @@ export default function StudentDashboard() {
       <Navbar userRole="student" />
       
       <main className="flex-grow container mx-auto px-4 py-8 mt-16">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Student Dashboard</h1>
-          <Button>Update Profile</Button>
+          <Link to="/profile/edit">
+            <Button className="flex items-center gap-2">
+              <FileUp size={16} />
+              Update Profile & Resume
+            </Button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
