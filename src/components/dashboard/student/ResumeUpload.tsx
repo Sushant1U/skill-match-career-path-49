@@ -25,7 +25,10 @@ export function ResumeUpload() {
         .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       return data;
     },
     enabled: !!user?.id
@@ -46,9 +49,12 @@ export function ResumeUpload() {
         throw new Error('File size must be less than 1MB');
       }
 
+      console.log('Uploading resume for user:', user.id);
+
       // First check if the bucket exists, if not create it
       const { data: buckets } = await supabase.storage.listBuckets();
       if (!buckets?.some(bucket => bucket.name === 'resumes')) {
+        console.log('Creating resumes bucket');
         await supabase.storage.createBucket('resumes', {
           public: false,
           fileSizeLimit: maxSize
@@ -56,19 +62,30 @@ export function ResumeUpload() {
       }
 
       const fileName = `${user.id}-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
+      console.log('Uploading file:', fileName);
+      
+      const { error: uploadError, data } = await supabase.storage
         .from('resumes')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
+      console.log('Upload successful:', data);
+
+      // Get public URL for the file
       const { data: { publicUrl } } = supabase.storage
         .from('resumes')
         .getPublicUrl(fileName);
 
+      console.log('Resume public URL:', publicUrl);
+
+      // Update the user's profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -77,7 +94,10 @@ export function ResumeUpload() {
         })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
       return publicUrl;
     },
