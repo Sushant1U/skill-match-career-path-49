@@ -1,18 +1,19 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileUp, FileDown } from 'lucide-react';
+import { FileUp, FileDown, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResumeUpload } from '@/hooks/useResumeUpload';
 import { ResumePreviewDialog } from './ResumePreviewDialog';
+import { toast } from '@/components/ui/sonner';
 
 export function ResumeUpload() {
   const { user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const { uploading, setUploading, resumeUploadMutation } = useResumeUpload();
+  const { uploading, setUploading, resumeUploadMutation, fileError } = useResumeUpload();
 
   // Query to check if user already has a resume
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -33,12 +34,14 @@ export function ResumeUpload() {
       return data;
     },
     enabled: !!user?.id,
-    staleTime: 30000 // Consider data fresh for 30 seconds to prevent flickering
+    staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user) {
+      return;
+    }
 
     try {
       setUploading(true);
@@ -54,11 +57,12 @@ export function ResumeUpload() {
   };
 
   const handleViewResume = () => {
-    if (profile?.resume_url) {
-      window.open(profile.resume_url, '_blank');
-    } else {
-      setPreviewOpen(true);
+    if (!profile?.resume_url) {
+      toast.error("No resume uploaded yet");
+      return;
     }
+    
+    setPreviewOpen(true);
   };
 
   return (
@@ -96,6 +100,13 @@ export function ResumeUpload() {
           <FileDown className="mr-2 h-4 w-4" />
           View Resume
         </Button>
+      )}
+      
+      {fileError && (
+        <div className="flex items-center gap-2 mt-2 text-xs text-red-500">
+          <AlertCircle className="h-3 w-3" />
+          {fileError}
+        </div>
       )}
       
       <p className="text-xs text-gray-500 mt-2 text-center">

@@ -9,21 +9,44 @@ export function useResumeUpload() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  // Ensure the resume storage bucket exists
+  const ensureResumeBucketExists = async () => {
+    try {
+      // Check if bucket exists
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      if (error) throw error;
+
+      const resumeBucket = buckets?.find(bucket => bucket.name === 'resumes');
+      if (!resumeBucket) {
+        console.warn('Resumes bucket does not exist. Uploads may fail.');
+      }
+    } catch (error) {
+      console.error('Error checking resumes bucket:', error);
+    }
+  };
 
   const resumeUploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      setFileError(null);
       // Check file type
       if (file.type !== 'application/pdf') {
+        setFileError('Please upload a PDF file');
         throw new Error('Please upload a PDF file');
       }
 
       // Check file size (5MB = 5 * 1024 * 1024 bytes)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
+        setFileError('File size must be less than 5MB');
         throw new Error('File size must be less than 5MB');
       }
+
+      // Ensure bucket exists
+      await ensureResumeBucketExists();
 
       const fileName = `${user.id}-${Date.now()}.pdf`;
       
@@ -45,6 +68,8 @@ export function useResumeUpload() {
         const { data: { publicUrl } } = supabase.storage
           .from('resumes')
           .getPublicUrl(fileName);
+
+        console.log('Resume uploaded successfully, public URL:', publicUrl);
 
         // Update the user's profile
         const { error: updateError } = await supabase
@@ -79,6 +104,8 @@ export function useResumeUpload() {
   return {
     uploading,
     setUploading,
-    resumeUploadMutation
+    resumeUploadMutation,
+    fileError,
+    setFileError
   };
 }

@@ -23,10 +23,15 @@ export function ProfileSection() {
         .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       return data;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    retry: 2 // Retry failed requests twice
   });
 
   const getProfileCompleteness = () => {
