@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -76,15 +77,8 @@ export default function ShortlistedApplicantsPage() {
 
         console.log("Shortlisted applications with profiles data:", applicationsWithProfiles);
         
-        if (!applicationsWithProfiles || applicationsWithProfiles.length === 0) {
-          console.log("No shortlisted applications found");
-          setApplications([]);
-          setIsLoading(false);
-          return;
-        }
-        
         // Format the data for consumption by the UI
-        const formattedApplications = applicationsWithProfiles.map(app => {
+        const formattedApplications = (applicationsWithProfiles || []).map(app => {
           const studentProfile = app.profiles;
           
           return {
@@ -105,7 +99,7 @@ export default function ShortlistedApplicantsPage() {
               resumeUrl: studentProfile.resume_url || '',
               qualifications: studentProfile.qualifications || []
             } : {
-              id: '',
+              id: app.student_id || '',
               name: 'Anonymous',
               email: '',
               skills: [],

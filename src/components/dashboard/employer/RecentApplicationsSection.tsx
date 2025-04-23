@@ -8,10 +8,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApplications } from "@/hooks/useApplications";
 import { ApplicationItem } from "./ApplicationItem";
+import { useResumeStorage } from "@/hooks/useResumeStorage";
 
 export function RecentApplicationsSection() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isChecking } = useResumeStorage();
 
   useEffect(() => {
     // Set up realtime subscription for applications changes
@@ -62,7 +64,7 @@ export function RecentApplicationsSection() {
       linkText="View All Candidates"
       linkUrl="/employer/applicants"
     >
-      {isLoading ? (
+      {isLoading || isChecking ? (
         <div className="py-6 flex justify-center">
           <Spinner size="lg" />
         </div>

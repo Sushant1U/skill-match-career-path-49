@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -73,7 +74,7 @@ export default function ApplicantsPage() {
         console.log("Applications with profiles data:", applicationsWithProfiles);
         
         // Format the data for consumption by the UI
-        const formattedApplications = applicationsWithProfiles.map(app => {
+        const formattedApplications = (applicationsWithProfiles || []).map(app => {
           const studentProfile = app.profiles;
           
           return {
@@ -94,7 +95,7 @@ export default function ApplicantsPage() {
               resumeUrl: studentProfile.resume_url || '',
               qualifications: studentProfile.qualifications || []
             } : {
-              id: '',
+              id: app.student_id || '',
               name: 'Anonymous',
               email: '',
               skills: [],

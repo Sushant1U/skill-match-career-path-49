@@ -5,7 +5,6 @@ import { Check, X, Mail, FileText } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { useState } from "react";
 import { ResumePreviewDialog } from "@/components/dashboard/student/ResumePreviewDialog";
-import { useNavigate } from "react-router-dom";
 
 interface ApplicationItemProps {
   application: Application & {
@@ -23,7 +22,6 @@ export const ApplicationItem = ({
   onReject
 }: ApplicationItemProps) => {
   const [isResumeDialogOpen, setIsResumeDialogOpen] = useState(false);
-  const navigate = useNavigate();
   
   console.log("ApplicationItem received:", application);
   console.log("Student data:", application.student);
@@ -38,6 +36,7 @@ export const ApplicationItem = ({
     }
   };
 
+  // Determine if resume is available
   const hasResume = Boolean(application.student?.resumeUrl || application.resumeUrl);
   const resumeUrl = application.student?.resumeUrl || application.resumeUrl || '';
   
@@ -139,4 +138,4 @@ export const ApplicationItem = ({
       )}
     </div>
   );
-}
+};

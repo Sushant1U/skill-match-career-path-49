@@ -5,15 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 import { useNavigate } from 'react-router-dom';
+import { useResumeStorage } from '@/hooks/useResumeStorage';
 
 export function ShortlistedStats() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isChecking } = useResumeStorage();
   
   const { data: shortlistedCount = 0, isLoading } = useQuery({
     queryKey: ['employer-shortlisted-count', user?.id],
     queryFn: async () => {
-      if (!user?.id) return 0;
+      if (!user?.id || isChecking) return 0;
       
       console.log("Fetching shortlisted count for employer:", user?.id);
       
@@ -49,11 +51,11 @@ export function ShortlistedStats() {
         throw error;
       }
       
-      const actualCount = count || (data ? data.length : 0);
+      const actualCount = count ?? (data ? data.length : 0);
       console.log("Shortlisted applications count:", actualCount);
       return actualCount;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !isChecking,
     refetchInterval: 30000
   });
 
@@ -61,7 +63,7 @@ export function ShortlistedStats() {
     navigate('/employer/shortlisted');
   };
 
-  if (isLoading) {
+  if (isLoading || isChecking) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center justify-between">
