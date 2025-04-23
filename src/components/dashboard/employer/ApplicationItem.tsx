@@ -3,12 +3,12 @@ import { Application, Student } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Check, X, Mail, FileText } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ResumePreviewDialog } from "@/components/dashboard/student/ResumePreviewDialog";
 
 interface ApplicationItemProps {
   application: Application & {
-    student?: Student;
+    student?: Student | null;
     jobTitle?: string;
     jobCompany?: string;
   };
@@ -30,30 +30,31 @@ export const ApplicationItem = ({
     return null;
   }
   
-  console.log("Student data:", application.student);
+  // Get student data, could be null or undefined
+  const student = application.student;
+  console.log("Student data:", student);
 
   const handleContactStudent = () => {
-    if (application.student?.email) {
-      console.log("Contact student with email:", application.student.email);
-      window.location.href = `mailto:${application.student.email}?subject=Regarding your job application`;
+    if (student?.email) {
+      console.log("Contact student with email:", student.email);
+      window.location.href = `mailto:${student.email}?subject=Regarding your job application`;
     } else {
-      console.error("Unable to contact student. Email not available:", application.student);
+      console.error("Unable to contact student. Email not available.");
       toast.error('Unable to contact student. Email not available.');
     }
   };
 
   // Determine if resume is available and get the URL
-  // Check application resumeUrl first, then student's resumeUrl
-  const resumeUrl = application.resumeUrl || (application.student?.resumeUrl || null);
+  const resumeUrl = application.resumeUrl || (student?.resumeUrl || null);
   const hasResume = Boolean(resumeUrl);
   
   console.log("Resume check - Has resume:", hasResume, "Resume URL:", resumeUrl);
 
   // Get student name, defaulting to Anonymous if not available
-  const studentName = application.student?.name || "Anonymous Applicant";
+  const studentName = student?.name || "Anonymous Applicant";
   
   // Get student location, defaulting to Unknown if not available
-  const studentLocation = application.student?.location || "Unknown location";
+  const studentLocation = student?.location || "Unknown location";
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
@@ -97,18 +98,18 @@ export const ApplicationItem = ({
         </div>
       )}
 
-      {application.student?.skills && application.student.skills.length > 0 && (
+      {student?.skills && student.skills.length > 0 && (
         <div className="mt-4">
           <p className="text-sm font-medium mb-2">Skills:</p>
           <div className="flex flex-wrap gap-1">
-            {application.student.skills.slice(0, 5).map((skill, i) => (
+            {student.skills.slice(0, 5).map((skill, i) => (
               <span key={i} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
                 {skill}
               </span>
             ))}
-            {application.student.skills.length > 5 && (
+            {student.skills.length > 5 && (
               <span className="px-2 py-1 bg-gray-100 text-xs rounded-full">
-                +{application.student.skills.length - 5} more
+                +{student.skills.length - 5} more
               </span>
             )}
           </div>
@@ -138,7 +139,7 @@ export const ApplicationItem = ({
         <Button 
           size="sm" 
           onClick={handleContactStudent}
-          disabled={!application.student?.email}
+          disabled={!student?.email}
         >
           <Mail className="mr-2 h-4 w-4" />
           Contact

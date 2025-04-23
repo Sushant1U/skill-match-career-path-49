@@ -38,13 +38,11 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Fetch applications with student profiles in a single query - using JOIN syntax
-      const { data: applicationsWithStudents, error: applicationsError } = await supabase
+      // CRITICAL FIX: Perform two separate queries for better reliability
+      // 1. First fetch all applications for these jobs
+      const { data: applicationsData, error: applicationsError } = await supabase
         .from('applications')
-        .select(`
-          *,
-          student:profiles(id, name, email, skills, location, resume_url, qualifications)
-        `)
+        .select('*')
         .in('job_id', jobIds)
         .order('created_at', { ascending: false });
       
@@ -53,23 +51,45 @@ export const useApplications = (userId?: string) => {
         throw applicationsError;
       }
       
-      if (!applicationsWithStudents) {
+      if (!applicationsData || applicationsData.length === 0) {
         console.log("No applications found");
         return [];
       }
+
+      console.log("Raw applications data before student fetch:", applicationsData);
       
-      console.log("Raw applications data:", applicationsWithStudents);
+      // 2. Then fetch all student profiles separately using the student_ids
+      const studentIds = applicationsData.map(app => app.student_id).filter(Boolean);
+      
+      console.log("Student IDs to fetch:", studentIds);
+      
+      const { data: studentProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', studentIds);
+      
+      if (profilesError) {
+        console.error("Error fetching student profiles:", profilesError);
+        // Continue with what we have
+      }
+      
+      console.log("Fetched student profiles:", studentProfiles);
+      
+      // Create a map for quick lookup
+      const profilesMap = (studentProfiles || []).reduce((map, profile) => {
+        map[profile.id] = profile;
+        return map;
+      }, {} as Record<string, any>);
       
       // Format the applications data for the UI
-      return applicationsWithStudents.map(app => {
-        const student = app.student;
+      return applicationsData.map(app => {
+        const studentProfile = profilesMap[app.student_id];
         
-        // Log each individual application for debugging
         console.log(`Processing application ${app.id}:`, {
           applicationResumeUrl: app.resume_url,
-          studentResumeUrl: student?.resume_url,
-          studentName: student?.name,
-          studentData: student
+          studentId: app.student_id,
+          studentProfile: studentProfile ? "Found" : "Not found",
+          studentResumeUrl: studentProfile?.resume_url || null
         });
         
         return {
@@ -79,18 +99,18 @@ export const useApplications = (userId?: string) => {
           status: app.status,
           createdAt: app.created_at,
           // Explicitly prioritize resume URLs
-          resumeUrl: app.resume_url || (student?.resume_url || null),
+          resumeUrl: app.resume_url || (studentProfile?.resume_url || null),
           jobTitle: jobDetailsMap[app.job_id]?.title,
           jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: student ? {
-            id: student.id,
-            name: student.name || 'Anonymous',
-            email: student.email || '',
-            skills: student.skills || [],
-            location: student.location || 'Unknown location',
-            resumeUrl: student.resume_url || '',
-            qualifications: student.qualifications || []
-          } : undefined
+          student: studentProfile ? {
+            id: studentProfile.id,
+            name: studentProfile.name || 'Anonymous',
+            email: studentProfile.email || '',
+            skills: studentProfile.skills || [],
+            location: studentProfile.location || 'Unknown location',
+            resumeUrl: studentProfile.resume_url || '',
+            qualifications: studentProfile.qualifications || []
+          } : null
         };
       });
     },
