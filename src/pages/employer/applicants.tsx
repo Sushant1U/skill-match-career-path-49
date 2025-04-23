@@ -30,6 +30,7 @@ export default function ApplicantsPage() {
       
       try {
         console.log("Fetching applications for employer:", user.id);
+        
         // First get all jobs posted by this employer
         const { data: jobs, error: jobsError } = await supabase
           .from('jobs')
@@ -55,49 +56,80 @@ export default function ApplicantsPage() {
           return acc;
         }, {} as Record<string, { title: string, company: string }>);
         
-        const { data, error } = await supabase
+        // First fetch applications
+        const { data: applicationsData, error: applicationsError } = await supabase
           .from('applications')
-          .select(`
-            *,
-            student:profiles(id, name, email, skills, location, resume_url, qualifications)
-          `)
+          .select('*')
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
         
-        if (error) {
-          console.error("Error fetching applications:", error);
-          throw error;
+        if (applicationsError) {
+          console.error("Error fetching applications:", applicationsError);
+          throw applicationsError;
         }
         
-        console.log("Applications data:", data);
+        console.log("Applications data:", applicationsData);
         
-        const formattedApplications = (data || []).map(app => ({
-          id: app.id,
-          jobId: app.job_id,
-          studentId: app.student_id,
-          status: app.status,
-          createdAt: app.created_at,
-          resumeUrl: app.resume_url || app.student?.resume_url,
-          jobTitle: jobDetailsMap[app.job_id]?.title,
-          jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: app.student ? {
-            id: app.student.id,
-            name: app.student.name || 'Anonymous',
-            email: app.student.email || '',
-            skills: app.student.skills || [],
-            location: app.student.location || 'Location not specified',
-            resumeUrl: app.student.resume_url || '',
-            qualifications: app.student.qualifications || []
-          } : {
-            id: '',
-            name: 'Anonymous',
-            email: '',
-            skills: [],
-            location: 'Unknown location',
-            resumeUrl: '',
-            qualifications: []
-          }
-        }));
+        // Then fetch student profiles separately
+        const studentIds = applicationsData.map(app => app.student_id).filter(Boolean);
+        
+        if (studentIds.length === 0) {
+          console.log("No student IDs found in applications");
+          setApplications([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', studentIds);
+        
+        if (studentsError) {
+          console.error("Error fetching student profiles:", studentsError);
+          throw studentsError;
+        }
+        
+        console.log("Student profiles data:", studentsData);
+        
+        // Create a map of student profiles by ID for easy lookup
+        const studentMap = studentsData.reduce((acc, student) => {
+          acc[student.id] = student;
+          return acc;
+        }, {} as Record<string, any>);
+        
+        // Combine application data with student profiles
+        const formattedApplications = applicationsData.map(app => {
+          const studentProfile = app.student_id ? studentMap[app.student_id] : null;
+          
+          return {
+            id: app.id,
+            jobId: app.job_id,
+            studentId: app.student_id,
+            status: app.status,
+            createdAt: app.created_at,
+            resumeUrl: app.resume_url || (studentProfile?.resume_url || ''),
+            jobTitle: jobDetailsMap[app.job_id]?.title,
+            jobCompany: jobDetailsMap[app.job_id]?.company,
+            student: studentProfile ? {
+              id: studentProfile.id,
+              name: studentProfile.name || 'Anonymous',
+              email: studentProfile.email || '',
+              skills: studentProfile.skills || [],
+              location: studentProfile.location || 'Location not specified',
+              resumeUrl: studentProfile.resume_url || '',
+              qualifications: studentProfile.qualifications || []
+            } : {
+              id: '',
+              name: 'Anonymous',
+              email: '',
+              skills: [],
+              location: 'Unknown location',
+              resumeUrl: '',
+              qualifications: []
+            }
+          };
+        });
         
         console.log("Formatted applications:", formattedApplications);
         setApplications(formattedApplications);

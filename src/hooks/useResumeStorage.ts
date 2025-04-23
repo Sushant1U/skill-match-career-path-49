@@ -18,7 +18,26 @@ export function useResumeStorage() {
         
         if (bucketsError) {
           console.error("Error checking buckets:", bucketsError);
-          setBucketExists(false);
+          
+          // Try to create the bucket if we couldn't list buckets (might be permission issue)
+          try {
+            const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
+              public: true,
+              fileSizeLimit: 10 * 1024 * 1024 // 10MB
+            });
+            
+            if (createError && !createError.message.includes('already exists')) {
+              console.error("Error creating bucket:", createError);
+              setBucketExists(false);
+            } else {
+              console.log("Bucket created or already exists:", createData);
+              setBucketExists(true);
+            }
+          } catch (e) {
+            console.error("Exception creating bucket:", e);
+            setBucketExists(false);
+          }
+          
           setIsChecking(false);
           return;
         }
@@ -33,7 +52,7 @@ export function useResumeStorage() {
               fileSizeLimit: 10 * 1024 * 1024 // 10MB
             });
             
-            if (bucketError) {
+            if (bucketError && !bucketError.message.includes('already exists')) {
               console.error("Error creating bucket:", bucketError);
               setBucketExists(false);
             } else {

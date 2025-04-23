@@ -35,12 +35,12 @@ export function ShortlistedStats() {
       
       // Extract job IDs
       const jobIds = jobs.map(job => job.id);
-      console.log("Found job IDs:", jobIds);
+      console.log("Found job IDs for shortlisted count:", jobIds);
       
       // Now count shortlisted applications for these jobs
-      const { count, error } = await supabase
+      const { data, error, count } = await supabase
         .from('applications')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('status', 'shortlisted')
         .in('job_id', jobIds);
       
