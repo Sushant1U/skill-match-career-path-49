@@ -26,6 +26,7 @@ export const ApplicationItem = ({
   const navigate = useNavigate();
   
   console.log("ApplicationItem received:", application);
+  console.log("Student data:", application.student);
 
   const handleContactStudent = () => {
     if (application.student?.email) {
@@ -41,8 +42,10 @@ export const ApplicationItem = ({
     navigate('/employer/shortlisted');
   };
 
-  const hasResume = Boolean(application.student?.resumeUrl && application.student.resumeUrl !== '');
-  console.log("Has resume:", hasResume, "Resume URL:", application.student?.resumeUrl);
+  const hasResume = Boolean(application.student?.resumeUrl || application.resumeUrl);
+  const resumeUrl = application.student?.resumeUrl || application.resumeUrl || '';
+  
+  console.log("Has resume:", hasResume, "Resume URL:", resumeUrl);
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
@@ -134,7 +137,7 @@ export const ApplicationItem = ({
         <ResumePreviewDialog
           isOpen={isResumeDialogOpen}
           onClose={() => setIsResumeDialogOpen(false)}
-          resumeUrl={application.student.resumeUrl as string}
+          resumeUrl={resumeUrl}
         />
       )}
     </div>

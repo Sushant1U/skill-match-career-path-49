@@ -11,64 +11,42 @@ export function useResumeStorage() {
       try {
         console.log("Checking if 'resumes' bucket exists...");
         
-        // Check if bucket exists
-        const { data: buckets, error: bucketsError } = await supabase
+        // Try to get bucket information directly
+        const { data: bucketInfo, error: bucketError } = await supabase
           .storage
-          .listBuckets();
-        
-        if (bucketsError) {
-          console.error("Error checking buckets:", bucketsError);
+          .getBucket('resumes');
           
-          // Try to create the bucket if we couldn't list buckets (might be permission issue)
-          try {
-            const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
-              public: true,
-              fileSizeLimit: 10 * 1024 * 1024 // 10MB
-            });
-            
-            if (createError && !createError.message.includes('already exists')) {
-              console.error("Error creating bucket:", createError);
-              setBucketExists(false);
-            } else {
-              console.log("Bucket created or already exists:", createData);
-              setBucketExists(true);
-            }
-          } catch (e) {
-            console.error("Exception creating bucket:", e);
-            setBucketExists(false);
-          }
-          
+        if (!bucketError && bucketInfo) {
+          console.log("Resumes bucket exists:", bucketInfo);
+          setBucketExists(true);
           setIsChecking(false);
           return;
         }
         
-        const bucket = buckets?.find(b => b.name === 'resumes');
+        if (bucketError && !bucketError.message.includes('The resource was not found')) {
+          console.error("Error checking bucket:", bucketError);
+          // If error is not "bucket not found", exit with error
+          setBucketExists(false);
+          setIsChecking(false);
+          return;
+        }
         
-        if (!bucket) {
-          console.log("Resumes bucket does not exist yet. Creating it...");
-          try {
-            const { data: bucketData, error: bucketError } = await supabase.storage.createBucket('resumes', {
-              public: true,
-              fileSizeLimit: 10 * 1024 * 1024 // 10MB
-            });
-            
-            if (bucketError && !bucketError.message.includes('already exists')) {
-              console.error("Error creating bucket:", bucketError);
-              setBucketExists(false);
-            } else {
-              console.log("Bucket created successfully:", bucketData);
-              setBucketExists(true);
-            }
-          } catch (createError) {
-            console.error("Error creating bucket:", createError);
-            setBucketExists(false);
-          }
+        // If we get here, bucket doesn't exist, so create it
+        console.log("Resumes bucket does not exist. Creating it...");
+        const { data: createData, error: createError } = await supabase.storage.createBucket('resumes', {
+          public: true,
+          fileSizeLimit: 10 * 1024 * 1024 // 10MB
+        });
+        
+        if (createError) {
+          console.error("Error creating bucket:", createError);
+          setBucketExists(false);
         } else {
-          console.log("Resumes bucket exists:", bucket);
+          console.log("Bucket created successfully:", createData);
           setBucketExists(true);
         }
       } catch (error) {
-        console.error("Error checking bucket:", error);
+        console.error("Exception during bucket check or creation:", error);
         setBucketExists(false);
       } finally {
         setIsChecking(false);

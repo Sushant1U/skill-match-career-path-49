@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -59,59 +58,34 @@ export default function ShortlistedApplicantsPage() {
           return acc;
         }, {} as Record<string, { title: string, company: string }>);
 
-        // First fetch shortlisted applications
-        const { data: applicationsData, error: applicationsError } = await supabase
+        // Fetch shortlisted applications with student profiles in a single join query
+        const { data: applicationsWithProfiles, error: joinError } = await supabase
           .from('applications')
-          .select('*')
+          .select(`
+            *,
+            profiles:student_id(*)
+          `)
           .eq('status', 'shortlisted')
           .in('job_id', jobIds)
           .order('created_at', { ascending: false });
 
-        if (applicationsError) {
-          console.error("Error fetching shortlisted applications:", applicationsError);
-          throw applicationsError;
+        if (joinError) {
+          console.error("Error fetching shortlisted applications with profiles:", joinError);
+          throw joinError;
         }
 
-        console.log("Shortlisted applications data:", applicationsData);
+        console.log("Shortlisted applications with profiles data:", applicationsWithProfiles);
         
-        if (!applicationsData || applicationsData.length === 0) {
+        if (!applicationsWithProfiles || applicationsWithProfiles.length === 0) {
           console.log("No shortlisted applications found");
           setApplications([]);
           setIsLoading(false);
           return;
         }
-
-        // Then fetch student profiles separately
-        const studentIds = applicationsData.map(app => app.student_id).filter(Boolean);
         
-        if (studentIds.length === 0) {
-          console.log("No student IDs found in applications");
-          setApplications([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        const { data: studentsData, error: studentsError } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', studentIds);
-        
-        if (studentsError) {
-          console.error("Error fetching student profiles:", studentsError);
-          throw studentsError;
-        }
-        
-        console.log("Student profiles data:", studentsData);
-        
-        // Create a map of student profiles by ID for easy lookup
-        const studentMap = studentsData.reduce((acc, student) => {
-          acc[student.id] = student;
-          return acc;
-        }, {} as Record<string, any>);
-        
-        // Combine application data with student profiles
-        const formattedApplications = applicationsData.map(app => {
-          const studentProfile = app.student_id ? studentMap[app.student_id] : null;
+        // Format the data for consumption by the UI
+        const formattedApplications = applicationsWithProfiles.map(app => {
+          const studentProfile = app.profiles;
           
           return {
             id: app.id,
