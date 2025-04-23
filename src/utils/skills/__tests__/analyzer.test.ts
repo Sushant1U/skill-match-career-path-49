@@ -1,4 +1,5 @@
 
+import { describe, it, expect } from '@jest/globals';
 import { analyzeSkillSet } from '../analyzer';
 
 describe('Skill Analyzer', () => {
@@ -41,4 +42,3 @@ describe('Skill Analyzer', () => {
     expect(result.recommendations).toContain('Add more specific technical skills to your profile');
   });
 });
-

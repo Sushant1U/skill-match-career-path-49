@@ -1,4 +1,4 @@
-
+import { describe, it, expect } from '@jest/globals';
 import { calculateSkillScore, normalizeScore } from '../score-calculator';
 import { SKILLS_DATABASE } from '../database';
 
@@ -63,4 +63,3 @@ describe('Score Calculator', () => {
     });
   });
 });
-

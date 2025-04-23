@@ -1,4 +1,5 @@
 
+import { describe, it, expect } from '@jest/globals';
 import { identifyStrengthsAndWeaknesses } from '../skill-evaluator';
 
 describe('Skill Evaluator', () => {
@@ -42,4 +43,3 @@ describe('Skill Evaluator', () => {
     expect(result.weaknesses).toHaveLength(0);
   });
 });
-
