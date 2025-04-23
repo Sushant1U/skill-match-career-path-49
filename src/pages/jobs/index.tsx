@@ -1,25 +1,31 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Job } from "@/types";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import { JobCard } from "@/components/cards/JobCard";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Job } from "@/types";
 
 export default function JobsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    remote: false,
+    fullTime: false,
+    internship: false,
+  });
 
-  const { data: jobs, isLoading } = useQuery({
-    queryKey: ['jobs'],
+  const { data: jobs = [], isLoading, error } = useQuery({
+    queryKey: ["jobs"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .from("jobs")
+        .select("*")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       
@@ -33,81 +39,102 @@ export default function JobsPage() {
         skills: job.skills,
         qualifications: job.qualifications,
         employerId: job.employer_id, // Convert snake_case to camelCase
-        status: job.status as 'active' | 'closed',
+        status: job.status as "active" | "closed",
         createdAt: job.created_at, // Convert snake_case to camelCase
         applications: job.applications_count
       })) as Job[];
     }
   });
 
-  const filteredJobs = jobs?.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter jobs based on search query and filters
+  const filteredJobs = jobs.filter(job => {
+    // Search filter
+    const matchesSearch =
+      searchQuery === "" ||
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.skills.some(skill => 
+        skill.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-    const matchesSkills = selectedSkills.length === 0 || 
-      selectedSkills.every(skill => job.skills.includes(skill));
+    // Filter by Remote
+    const matchesRemote = !filters.remote || job.location.toLowerCase().includes("remote");
 
-    return matchesSearch && matchesSkills;
+    // We don't have data for full-time vs internship yet, so this is a placeholder
+    // In a real app, you'd have job type fields in your database
+    return matchesSearch && matchesRemote;
   });
 
-  const allSkills = Array.from(new Set(jobs?.flatMap(job => job.skills) || []));
-
-  const toggleSkill = (skill: string) => {
-    setSelectedSkills(prev => 
-      prev.includes(skill) 
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
-    );
+  const toggleFilter = (filter: keyof typeof filters) => {
+    setFilters(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Find Your Next Opportunity</h1>
-      
-      <div className="mb-8">
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          <Input
-            placeholder="Search jobs by title, company, or location..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          {allSkills.map(skill => (
-            <Button
-              key={skill}
-              variant={selectedSkills.includes(skill) ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleSkill(skill)}
-            >
-              {skill}
-            </Button>
-          ))}
-        </div>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-grow container mx-auto px-4 py-8 mt-16">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Browse Jobs</h1>
 
-      {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-[300px] rounded-lg bg-gray-100 animate-pulse" />
-          ))}
+        {/* Search and filters */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search jobs by title, company, or skills..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filters.remote ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleFilter("remote")}
+            >
+              Remote
+            </Button>
+            <Button
+              variant={filters.fullTime ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleFilter("fullTime")}
+            >
+              Full-time
+            </Button>
+            <Button
+              variant={filters.internship ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleFilter("internship")}
+            >
+              Internship
+            </Button>
+          </div>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredJobs?.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
-          {filteredJobs?.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500">No jobs found matching your criteria.</p>
+
+        {/* Job listings */}
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="text-center py-10">Loading jobs...</div>
+          ) : error ? (
+            <div className="text-center py-10 text-red-500">
+              Error loading jobs. Please try again.
             </div>
+          ) : filteredJobs.length === 0 ? (
+            <div className="text-center py-10">
+              No jobs found. Try adjusting your search criteria.
+            </div>
+          ) : (
+            filteredJobs.map((job) => <JobCard key={job.id} job={job} />)
           )}
         </div>
-      )}
+      </main>
+      <Footer />
     </div>
   );
 }

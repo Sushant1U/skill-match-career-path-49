@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -16,9 +17,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Job, Notification } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/sonner';
+import { useQuery } from '@tanstack/react-query';
 
-// Mock data for demonstration
-const mockSkills = ['React', 'JavaScript', 'TypeScript', 'UI/UX Design'];
+// Mock data for notifications (we'll implement real notifications later)
 const mockNotifications: Notification[] = [
   {
     id: '1',
@@ -37,59 +40,101 @@ const mockNotifications: Notification[] = [
     createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
   }
 ];
-const mockJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Frontend Developer',
-    company: 'Tech Innovations Inc.',
-    location: 'San Francisco, CA (Remote)',
-    description: 'We are looking for a skilled Frontend Developer proficient in React and modern JavaScript.',
-    skills: ['React', 'JavaScript', 'TypeScript', 'CSS'],
-    qualifications: ['Bachelor\'s in Computer Science or related field', '2+ years of experience'],
-    employerId: '1',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    title: 'UX Designer',
-    company: 'Creative Solutions',
-    location: 'New York, NY',
-    description: 'Join our team to create beautiful and intuitive user experiences for our products.',
-    skills: ['UI/UX Design', 'Figma', 'User Research', 'Prototyping'],
-    qualifications: ['Bachelor\'s in Design or related field', '3+ years of experience'],
-    employerId: '2',
-    status: 'active',
-    createdAt: new Date(Date.now() - 172800000).toISOString() // 2 days ago
-  }
-];
-const mockRecommendedJobs: Job[] = [
-  {
-    id: '3',
-    title: 'React Developer',
-    company: 'Web Wizards LLC',
-    location: 'Austin, TX (Remote)',
-    description: 'Looking for a React developer to join our growing team working on exciting projects.',
-    skills: ['React', 'JavaScript', 'Redux', 'Node.js'],
-    qualifications: ['Bachelor\'s degree', '1+ years of experience'],
-    employerId: '3',
-    status: 'active',
-    createdAt: new Date(Date.now() - 259200000).toISOString() // 3 days ago
-  }
-];
 
 export default function StudentDashboard() {
-  const [skills, setSkills] = useState<string[]>(mockSkills);
+  const { user, userRole } = useAuth();
+  const [skills, setSkills] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   
-  const addSkill = (skill: string) => {
+  // Fetch jobs from Supabase
+  const { data: jobs, isLoading: jobsLoading, error: jobsError } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return (data || []).map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        skills: job.skills,
+        qualifications: job.qualifications,
+        employerId: job.employer_id,
+        status: job.status as 'active' | 'closed',
+        createdAt: job.created_at,
+        applications: job.applications_count
+      })) as Job[];
+    }
+  });
+
+  // Fetch user profile including skills
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  // Update skills when profile is loaded
+  useEffect(() => {
+    if (profile?.skills) {
+      setSkills(profile.skills);
+    }
+  }, [profile]);
+
+  const addSkill = async (skill: string) => {
+    if (!user) return;
     if (!skills.includes(skill)) {
-      setSkills([...skills, skill]);
+      const newSkills = [...skills, skill];
+      setSkills(newSkills);
+      
+      // Update skills in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ skills: newSkills })
+        .eq('id', user.id);
+      
+      if (error) {
+        toast.error('Failed to update skills');
+        // Revert changes
+        setSkills(skills);
+      }
     }
   };
 
-  const removeSkill = (skill: string) => {
-    setSkills(skills.filter(s => s !== skill));
+  const removeSkill = async (skill: string) => {
+    if (!user) return;
+    const newSkills = skills.filter(s => s !== skill);
+    setSkills(newSkills);
+    
+    // Update skills in database
+    const { error } = await supabase
+      .from('profiles')
+      .update({ skills: newSkills })
+      .eq('id', user.id);
+    
+    if (error) {
+      toast.error('Failed to update skills');
+      // Revert changes
+      setSkills(skills);
+    }
   };
 
   const markNotificationAsRead = (id: string) => {
@@ -107,6 +152,14 @@ export default function StudentDashboard() {
       notifications.map(notification => ({ ...notification, read: true }))
     );
   };
+
+  // Find recommended jobs based on skills match
+  const recommendedJobs = jobs ? jobs
+    .filter(job => job.skills.some(skill => skills.includes(skill)))
+    .slice(0, 3) : [];
+
+  // Recently applied jobs (mock for now)
+  const appliedJobs = jobs ? jobs.slice(0, 2) : [];
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -128,12 +181,16 @@ export default function StudentDashboard() {
               linkText="Skill Assessment"
               linkUrl="/skills/assessment"
             >
-              <SkillsList 
-                skills={skills} 
-                onAddSkill={addSkill} 
-                onRemoveSkill={removeSkill} 
-                editable={true} 
-              />
+              {profileLoading ? (
+                <div className="py-6 text-center">Loading skills...</div>
+              ) : (
+                <SkillsList 
+                  skills={skills} 
+                  onAddSkill={addSkill} 
+                  onRemoveSkill={removeSkill} 
+                  editable={true} 
+                />
+              )}
             </DashboardCard>
 
             {/* Job search section */}
@@ -166,15 +223,23 @@ export default function StudentDashboard() {
             <DashboardCard 
               title="Applied Jobs" 
               icon={<Briefcase size={20} />}
-              count={mockJobs.length}
+              count={appliedJobs.length}
               linkText="View All"
               linkUrl="/my-applications"
             >
-              <div className="space-y-4">
-                {mockJobs.map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
+              {jobsLoading ? (
+                <div className="py-6 text-center">Loading jobs...</div>
+              ) : jobsError ? (
+                <div className="py-6 text-center text-red-500">Error loading jobs</div>
+              ) : appliedJobs.length === 0 ? (
+                <div className="py-6 text-center text-gray-500">No job applications yet</div>
+              ) : (
+                <div className="space-y-4">
+                  {appliedJobs.map(job => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              )}
             </DashboardCard>
           </div>
 
@@ -191,9 +256,9 @@ export default function StudentDashboard() {
                 <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-4">
                   <User size={36} />
                 </div>
-                <h3 className="font-medium text-lg">John Doe</h3>
+                <h3 className="font-medium text-lg">{profile?.name || user?.user_metadata?.name || 'Student'}</h3>
                 <p className="text-gray-500">Computer Science Student</p>
-                <p className="text-gray-500 text-sm mt-1">San Francisco, CA</p>
+                <p className="text-gray-500 text-sm mt-1">{profile?.location || 'No location set'}</p>
               </div>
               <div className="space-y-2 mt-4 text-sm">
                 <div className="flex justify-between">
@@ -232,11 +297,21 @@ export default function StudentDashboard() {
               linkText="View All"
               linkUrl="/jobs/recommended"
             >
-              <div className="space-y-4">
-                {mockRecommendedJobs.map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
+              {jobsLoading ? (
+                <div className="py-6 text-center">Loading recommendations...</div>
+              ) : jobsError ? (
+                <div className="py-6 text-center text-red-500">Error loading recommendations</div>
+              ) : recommendedJobs.length === 0 ? (
+                <div className="py-6 text-center text-gray-500">
+                  Add skills to get job recommendations
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recommendedJobs.map(job => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              )}
             </DashboardCard>
           </div>
         </div>

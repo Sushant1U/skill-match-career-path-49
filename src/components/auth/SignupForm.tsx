@@ -1,14 +1,14 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { UserRole } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function SignupForm() {
-  const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -47,23 +47,17 @@ export function SignupForm() {
       return;
     }
 
-    // Simulate signup process
     try {
-      // Here we would typically make an API call to register the user
-      console.log('Signing up with:', formData);
+      await signUp(
+        formData.email, 
+        formData.password, 
+        formData.name, 
+        formData.role
+      );
       
-      // Simulate a successful signup
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Redirect based on role
-      if (formData.role === 'student') {
-        navigate('/student-dashboard');
-      } else {
-        navigate('/employer-dashboard');
-      }
-    } catch (err) {
-      setError('An error occurred during signup. Please try again.');
-      console.error('Signup error:', err);
+      // Navigation will be handled by the signUp function in AuthContext
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during signup');
     } finally {
       setIsLoading(false);
     }

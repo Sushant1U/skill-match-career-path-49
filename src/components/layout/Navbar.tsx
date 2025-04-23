@@ -1,18 +1,28 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { UserRole } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavbarProps {
   userRole?: UserRole;
 }
 
 export function Navbar({ userRole }: NavbarProps) {
+  const { user, userRole: authUserRole, signOut } = useAuth();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Use the role from auth context if available, otherwise fall back to the prop
+  const role = authUserRole || userRole;
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -42,12 +52,12 @@ export function Navbar({ userRole }: NavbarProps) {
           </div>
 
           <div className="hidden md:ml-6 md:flex md:items-center">
-            {userRole ? (
+            {user ? (
               <>
-                <Link to={userRole === 'student' ? '/student-dashboard' : '/employer-dashboard'}>
+                <Link to={role === 'student' ? '/student-dashboard' : '/employer-dashboard'}>
                   <Button variant="ghost" className="mr-2">Dashboard</Button>
                 </Link>
-                <Button variant="outline">Sign Out</Button>
+                <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
               </>
             ) : (
               <>
@@ -110,15 +120,18 @@ export function Navbar({ userRole }: NavbarProps) {
         </div>
         <div className="pt-4 pb-3 border-t border-gray-200">
           <div className="px-2 space-y-1">
-            {userRole ? (
+            {user ? (
               <>
                 <Link
-                  to={userRole === 'student' ? '/student-dashboard' : '/employer-dashboard'}
+                  to={role === 'student' ? '/student-dashboard' : '/employer-dashboard'}
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue"
                 >
                   Dashboard
                 </Link>
-                <button className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue">
+                <button 
+                  onClick={handleSignOut}
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-platformBlue"
+                >
                   Sign Out
                 </button>
               </>

@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserRole } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginForm() {
   const navigate = useNavigate();
+  const { signIn, userRole, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -30,25 +31,13 @@ export function LoginForm() {
     setError(null);
 
     try {
-      // Here we would typically make an API call to authenticate the user
-      console.log('Logging in with:', formData);
+      // Call sign in from Auth context
+      await signIn(formData.email, formData.password);
       
-      // Simulate a successful login
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Simulate checking user role
-      // In a real application, this would come from your authentication response
-      const mockUserRole: UserRole = Math.random() > 0.5 ? 'student' : 'employer';
-      
-      // Redirect based on role
-      if (mockUserRole === 'student') {
-        navigate('/student-dashboard');
-      } else {
-        navigate('/employer-dashboard');
-      }
-    } catch (err) {
-      setError('Invalid email or password');
-      console.error('Login error:', err);
+      // Navigation will be handled by the onAuthStateChange listener in AuthContext
+      // or automatic redirects in protected routes
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
