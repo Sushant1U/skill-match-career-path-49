@@ -5,7 +5,6 @@ import { Job } from "@/types";
 import { JobCard } from "@/components/cards/JobCard";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -23,7 +22,21 @@ export default function JobsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Job[];
+      
+      // Map the snake_case DB columns to camelCase properties
+      return (data || []).map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        description: job.description,
+        skills: job.skills,
+        qualifications: job.qualifications,
+        employerId: job.employer_id, // Convert snake_case to camelCase
+        status: job.status as 'active' | 'closed',
+        createdAt: job.created_at, // Convert snake_case to camelCase
+        applications: job.applications_count
+      })) as Job[];
     }
   });
 
