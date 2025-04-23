@@ -7,14 +7,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export function ResumeUpload() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Query to check if user already has a resume
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -43,24 +51,14 @@ export function ResumeUpload() {
         throw new Error('Please upload a PDF file');
       }
 
-      // Check file size (1MB = 1024 * 1024 bytes)
-      const maxSize = 1024 * 1024; // 1MB
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        throw new Error('File size must be less than 1MB');
+        throw new Error('File size must be less than 5MB');
       }
 
       console.log('Uploading resume for user:', user.id);
-
-      // First check if the bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.some(bucket => bucket.name === 'resumes')) {
-        console.log('Creating resumes bucket');
-        await supabase.storage.createBucket('resumes', {
-          public: false,
-          fileSizeLimit: maxSize
-        });
-      }
-
+      
       const fileName = `${user.id}-${Date.now()}.pdf`;
       console.log('Uploading file:', fileName);
       
@@ -101,7 +99,7 @@ export function ResumeUpload() {
 
       return publicUrl;
     },
-    onSuccess: () => {
+    onSuccess: (url) => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
       toast.success('Resume uploaded successfully');
     },
@@ -120,6 +118,9 @@ export function ResumeUpload() {
       await resumeUploadMutation.mutateAsync(file);
     } finally {
       setUploading(false);
+      if (event.target) {
+        event.target.value = '';  // Reset the input
+      }
     }
   };
 
@@ -139,7 +140,7 @@ export function ResumeUpload() {
               <Spinner size="sm" className="mr-2" />
               Uploading...
             </>
-          ) : 'Upload Resume (PDF, Max 1MB)'}
+          ) : 'Upload Resume (PDF, Max 5MB)'}
         </Button>
         <input
           id="resume-upload"
@@ -163,8 +164,26 @@ export function ResumeUpload() {
       )}
       
       <p className="text-xs text-gray-500 mt-2 text-center">
-        Only PDF format accepted. Maximum file size: 1MB
+        Only PDF format accepted. Maximum file size: 5MB
       </p>
+      
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Resume Preview</DialogTitle>
+            <DialogDescription>
+              Your uploaded resume
+            </DialogDescription>
+          </DialogHeader>
+          {profile?.resume_url && (
+            <iframe 
+              src={profile.resume_url} 
+              className="w-full h-full border-0" 
+              title="Resume Preview"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

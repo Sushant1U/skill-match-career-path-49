@@ -28,28 +28,50 @@ export default function SkillsAssessmentPage() {
     queryFn: async () => {
       if (!user?.id) return null;
       
+      console.log("Fetching profile data for skills assessment...");
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('skills, skill_proficiency, skill_analysis')
         .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile data:", error);
+        throw error;
+      }
+      
+      console.log("Profile data fetched:", data);
       return data;
     },
     enabled: !!user?.id
   });
   
+  // Initialize skills from profile data when it loads
   useEffect(() => {
-    if (profile?.skills && Array.isArray(profile.skills)) {
-      const initialSkills = profile.skills.map(name => ({
-        name,
-        proficiency: profile.skill_proficiency?.[name] || 5
-      }));
-      setSkills(initialSkills);
+    if (profile) {
+      console.log("Setting up initial skills from profile:", profile);
       
+      if (profile.skills && Array.isArray(profile.skills)) {
+        const initialSkills = profile.skills.map(name => ({
+          name,
+          proficiency: profile.skill_proficiency?.[name] || 5
+        }));
+        
+        console.log("Initial skills set:", initialSkills);
+        setSkills(initialSkills);
+      } else {
+        console.log("No skills found in profile data");
+        setSkills([]);
+      }
+      
+      // Set analysis results if available
       if (profile.skill_analysis) {
-        setAnalysisResult(profile.skill_analysis);
+        console.log("Setting analysis from profile:", profile.skill_analysis);
+        setAnalysisResult(
+          typeof profile.skill_analysis === 'string' 
+            ? JSON.parse(profile.skill_analysis) 
+            : profile.skill_analysis
+        );
       }
     }
   }, [profile]);
@@ -58,6 +80,7 @@ export default function SkillsAssessmentPage() {
     mutationFn: async (data: any) => {
       if (!user?.id) throw new Error('User not authenticated');
       
+      console.log("Updating profile with data:", data);
       const { error } = await supabase
         .from('profiles')
         .update(data)
@@ -108,14 +131,17 @@ export default function SkillsAssessmentPage() {
   });
   
   const handleAddSkill = (skill: { name: string, proficiency: number }) => {
+    console.log("Adding skill:", skill);
     setSkills(prev => [...prev, skill]);
   };
   
   const handleRemoveSkill = (skillName: string) => {
+    console.log("Removing skill:", skillName);
     setSkills(skills.filter(s => s.name !== skillName));
   };
   
   const handleProficiencyChange = (skillName: string, value: number[]) => {
+    console.log("Updating proficiency for", skillName, "to", value[0]);
     setSkills(skills.map(skill => 
       skill.name === skillName 
         ? { ...skill, proficiency: value[0] } 
@@ -132,6 +158,7 @@ export default function SkillsAssessmentPage() {
     setIsLoading(true);
     
     try {
+      console.log("Running assessment for skills:", skills);
       const proficiencyMap: Record<string, number> = {};
       skills.forEach(s => {
         proficiencyMap[s.name.toLowerCase()] = s.proficiency;
@@ -142,7 +169,11 @@ export default function SkillsAssessmentPage() {
         proficiencyMap
       );
       
+      console.log("Assessment result:", result);
       setAnalysisResult(result);
+      
+      // Automatically save the assessment result
+      handleSaveAssessment(result, proficiencyMap, skills.map(s => s.name.toLowerCase()));
     } catch (error) {
       console.error('Assessment error:', error);
       toast.error('Failed to run skill assessment');
@@ -151,22 +182,32 @@ export default function SkillsAssessmentPage() {
     }
   };
   
-  const handleSaveAssessment = () => {
-    if (skills.length === 0 || !analysisResult) {
+  const handleSaveAssessment = (analysisData = analysisResult, proficiencyMap?: Record<string, number>, skillNames?: string[]) => {
+    if (!analysisData || skills.length === 0) {
       toast.error('Please add skills and run the assessment first');
       return;
     }
 
-    const proficiencyMap: Record<string, number> = {};
-    skills.forEach(s => {
-      proficiencyMap[s.name.toLowerCase()] = s.proficiency;
+    const profMap = proficiencyMap || {};
+    if (!proficiencyMap) {
+      skills.forEach(s => {
+        profMap[s.name.toLowerCase()] = s.proficiency;
+      });
+    }
+
+    const skillList = skillNames || skills.map(s => s.name.toLowerCase());
+
+    console.log("Saving assessment with data:", {
+      analysis: analysisData,
+      proficiencyMap: profMap,
+      skillNames: skillList,
     });
 
     updateAssessmentMutation.mutate({
-      analysis: analysisResult,
-      proficiencyMap,
-      skillNames: skills.map(s => s.name.toLowerCase()),
-      score: analysisResult.score
+      analysis: analysisData,
+      proficiencyMap: profMap,
+      skillNames: skillList,
+      score: analysisData.score
     });
   };
 
@@ -219,7 +260,7 @@ export default function SkillsAssessmentPage() {
               {analysisResult ? (
                 <AnalysisResults 
                   result={analysisResult}
-                  onSave={handleSaveAssessment}
+                  onSave={() => handleSaveAssessment()}
                   isSaving={updateAssessmentMutation.isPending}
                 />
               ) : (
