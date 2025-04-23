@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUp, FileDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,7 +31,7 @@ export function ResumeUpload() {
         .from('profiles')
         .select('resume_url')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching profile:', error);
@@ -39,7 +39,8 @@ export function ResumeUpload() {
       }
       return data;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: 30000 // Consider data fresh for 30 seconds to prevent flickering
   });
 
   const resumeUploadMutation = useMutation({
@@ -62,44 +63,59 @@ export function ResumeUpload() {
       const fileName = `${user.id}-${Date.now()}.pdf`;
       console.log('Uploading file:', fileName);
       
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      try {
+        // First check if the bucket exists
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const resumeBucketExists = buckets?.some(b => b.name === 'resumes');
+        
+        if (!resumeBucketExists) {
+          console.error('Resumes bucket does not exist');
+          throw new Error('Storage bucket not found. Please contact support.');
+        }
+        
+        // Upload the file
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('resumes')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('Upload successful:', uploadData);
+
+        // Get public URL for the file
+        const { data: { publicUrl } } = supabase.storage
+          .from('resumes')
+          .getPublicUrl(fileName);
+
+        console.log('Resume public URL:', publicUrl);
+
+        // Update the user's profile
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            resume_url: publicUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          throw updateError;
+        }
+
+        return publicUrl;
+      } catch (error: any) {
+        console.error('Resume upload failed:', error);
+        throw new Error(error.message || 'Failed to upload resume');
       }
-
-      console.log('Upload successful:', uploadData);
-
-      // Get public URL for the file
-      const { data: { publicUrl } } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
-
-      console.log('Resume public URL:', publicUrl);
-
-      // Update the user's profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          resume_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        throw updateError;
-      }
-
-      return publicUrl;
     },
-    onSuccess: (url) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
       toast.success('Resume uploaded successfully');
     },
@@ -127,7 +143,13 @@ export function ResumeUpload() {
   const handleViewResume = () => {
     if (profile?.resume_url) {
       window.open(profile.resume_url, '_blank');
+    } else {
+      setPreviewOpen(true);
     }
+  };
+
+  const handlePreviewClose = () => {
+    setPreviewOpen(false);
   };
 
   return (
@@ -167,7 +189,7 @@ export function ResumeUpload() {
         Only PDF format accepted. Maximum file size: 5MB
       </p>
       
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      <Dialog open={previewOpen} onOpenChange={handlePreviewClose}>
         <DialogContent className="max-w-4xl h-[80vh]">
           <DialogHeader>
             <DialogTitle>Resume Preview</DialogTitle>

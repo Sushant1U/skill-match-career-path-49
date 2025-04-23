@@ -9,9 +9,12 @@ import { AppliedJobsSection } from '@/components/dashboard/student/AppliedJobsSe
 import { RecommendedJobsSection } from '@/components/dashboard/student/RecommendedJobsSection';
 import { NotificationsSection } from '@/components/dashboard/student/NotificationsSection';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { FileUp } from 'lucide-react';
 
 export default function StudentDashboard() {
+  const { user } = useAuth();
+  
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar userRole="student" />
