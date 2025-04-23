@@ -71,19 +71,31 @@ export function ProfileSection() {
       const fileName = `${user.id}-${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resumes')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
       if (uploadError) throw uploadError;
       
       // Get public URL
-      const { data: publicUrlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('resumes')
         .getPublicUrl(fileName);
       
       // Update profile with resume URL
-      await updateProfileMutation.mutateAsync({ 
-        resume_url: publicUrlData.publicUrl 
-      });
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          resume_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (updateError) throw updateError;
+
+      // Update local state
+      queryClient.invalidateQueries(['profile', user.id]);
       
       toast.success('Resume uploaded successfully');
     } catch (error) {
