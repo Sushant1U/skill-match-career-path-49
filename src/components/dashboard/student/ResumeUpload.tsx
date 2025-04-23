@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileUp } from 'lucide-react';
+import { FileUp, FileDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -12,6 +12,24 @@ export function ResumeUpload() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+
+  // Query to check if user already has a resume
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('resume_url')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
 
   const resumeUploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -85,6 +103,12 @@ export function ResumeUpload() {
     }
   };
 
+  const handleViewResume = () => {
+    if (profile?.resume_url) {
+      window.open(profile.resume_url, '_blank');
+    }
+  };
+
   return (
     <div className="mt-4">
       <label htmlFor="resume-upload" className="cursor-pointer block w-full">
@@ -106,6 +130,18 @@ export function ResumeUpload() {
           disabled={uploading}
         />
       </label>
+      
+      {profile?.resume_url && (
+        <Button 
+          className="w-full mt-2" 
+          variant="secondary"
+          onClick={handleViewResume}
+        >
+          <FileDown className="mr-2 h-4 w-4" />
+          View Resume
+        </Button>
+      )}
+      
       <p className="text-xs text-gray-500 mt-2 text-center">
         Only PDF format accepted. Maximum file size: 1MB
       </p>
