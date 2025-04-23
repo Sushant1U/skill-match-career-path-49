@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +24,7 @@ import SkillsAssessmentPage from "./pages/skills/assessment";
 import MyApplicationsPage from "./pages/my-applications";
 import RecommendedJobsPage from "./pages/jobs/recommended";
 import { UserRole } from "./types";
+import CareerAssistantPage from "./pages/career-assistant";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +145,14 @@ const App = () => (
             />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route
+              path="/career-assistant"
+              element={
+                <ProtectedRoute allowedRole="student">
+                  <CareerAssistantPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
