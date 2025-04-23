@@ -7,16 +7,34 @@ import { JobCard } from "@/components/cards/JobCard";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Job } from "@/types";
+import { useLocation } from "react-router-dom";
 
 export default function JobsPage() {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     remote: false,
     fullTime: false,
     internship: false,
   });
+
+  // Parse URL query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get("search");
+    const remoteParam = params.get("remote") === "true";
+    const fullTimeParam = params.get("fullTime") === "true";
+    const internshipParam = params.get("internship") === "true";
+    
+    if (searchParam) setSearchQuery(searchParam);
+    setFilters({
+      remote: remoteParam,
+      fullTime: fullTimeParam,
+      internship: internshipParam,
+    });
+  }, [location.search]);
 
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ["jobs"],
@@ -38,9 +56,9 @@ export default function JobsPage() {
         description: job.description,
         skills: job.skills,
         qualifications: job.qualifications,
-        employerId: job.employer_id, // Convert snake_case to camelCase
+        employerId: job.employer_id,
         status: job.status as "active" | "closed",
-        createdAt: job.created_at, // Convert snake_case to camelCase
+        createdAt: job.created_at,
         applications: job.applications_count
       })) as Job[];
     }
@@ -53,6 +71,7 @@ export default function JobsPage() {
       searchQuery === "" ||
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.skills.some(skill => 
         skill.toLowerCase().includes(searchQuery.toLowerCase())
@@ -85,7 +104,7 @@ export default function JobsPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <Input
               type="text"
-              placeholder="Search jobs by title, company, or skills..."
+              placeholder="Search jobs by title, company, location, or skills..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

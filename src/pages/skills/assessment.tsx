@@ -79,6 +79,8 @@ export default function SkillsAssessmentPage() {
     mutationFn: async (data: any) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      console.log("Saving assessment with data:", data);
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -90,7 +92,10 @@ export default function SkillsAssessmentPage() {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database update error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
@@ -160,7 +165,8 @@ export default function SkillsAssessmentPage() {
     updateAssessmentMutation.mutate({
       analysis: analysisResult,
       proficiencyMap,
-      skillNames: skills.map(s => s.name)
+      skillNames: skills.map(s => s.name.toLowerCase()),
+      score: analysisResult.score
     });
   };
 

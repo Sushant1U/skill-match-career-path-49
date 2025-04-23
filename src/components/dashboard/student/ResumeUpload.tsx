@@ -13,25 +13,20 @@ export function ResumeUpload() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+  const resumeUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!user?.id) throw new Error('User not authenticated');
 
-    // Check file type
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
-      return;
-    }
+      // Check file type
+      if (file.type !== 'application/pdf') {
+        throw new Error('Please upload a PDF file');
+      }
 
-    // Check file size (1MB = 1024 * 1024 bytes)
-    const maxSize = 1024 * 1024; // 1MB
-    if (file.size > maxSize) {
-      toast.error('File size must be less than 1MB');
-      return;
-    }
-
-    try {
-      setUploading(true);
+      // Check file size (1MB = 1024 * 1024 bytes)
+      const maxSize = 1024 * 1024; // 1MB
+      if (file.size > maxSize) {
+        throw new Error('File size must be less than 1MB');
+      }
 
       // First check if the bucket exists, if not create it
       const { data: buckets } = await supabase.storage.listBuckets();
@@ -66,11 +61,25 @@ export function ResumeUpload() {
 
       if (updateError) throw updateError;
 
-      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      return publicUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
       toast.success('Resume uploaded successfully');
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       console.error('Error uploading resume:', error);
-      toast.error('Failed to upload resume');
+      toast.error(error.message || 'Failed to upload resume');
+    }
+  });
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setUploading(true);
+      await resumeUploadMutation.mutateAsync(file);
     } finally {
       setUploading(false);
     }

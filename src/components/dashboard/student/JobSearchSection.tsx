@@ -51,6 +51,7 @@ export function JobSearchSection() {
     const matchesSearch = !searchQuery || 
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -61,7 +62,13 @@ export function JobSearchSection() {
   });
 
   const handleSearch = () => {
-    navigate(`/jobs?search=${encodeURIComponent(searchQuery)}`);
+    const searchParams = new URLSearchParams();
+    if (searchQuery) searchParams.append('search', searchQuery);
+    if (selectedFilters.remote) searchParams.append('remote', 'true');
+    if (selectedFilters.fullTime) searchParams.append('fullTime', 'true');
+    if (selectedFilters.internship) searchParams.append('internship', 'true');
+    
+    navigate(`/jobs?${searchParams.toString()}`);
   };
 
   const toggleFilter = (filter: keyof typeof selectedFilters) => {
@@ -83,7 +90,7 @@ export function JobSearchSection() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search for jobs, skills, or companies"
+              placeholder="Search for jobs, skills, or locations"
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-platformBlue focus:border-transparent"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

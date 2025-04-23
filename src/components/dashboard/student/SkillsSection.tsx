@@ -26,6 +26,7 @@ export function SkillsSection() {
         .single();
       
       if (error) throw error;
+      console.log("Fetched profile data:", data);
       return data;
     },
     enabled: !!user?.id
@@ -45,6 +46,14 @@ export function SkillsSection() {
 
   const skills = profile?.skills || [];
   const hasSkillData = !!profile?.skill_analysis;
+  const skillScore = profile?.skill_score || skillAnalysis?.score || 0;
+
+  console.log("Skills data:", {
+    skills,
+    hasSkillData,
+    skillScore,
+    skillAnalysis
+  });
 
   return (
     <DashboardCard 
@@ -74,7 +83,7 @@ export function SkillsSection() {
             <>
               {hasSkillData ? (
                 <SkillScore 
-                  score={skillAnalysis.score}
+                  score={skillScore}
                   strengths={skillAnalysis.strengths}
                   weaknesses={skillAnalysis.weaknesses}
                   recommendations={skillAnalysis.recommendations}
