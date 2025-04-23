@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
@@ -95,7 +94,7 @@ export function ProfileSection() {
       if (updateError) throw updateError;
 
       // Update local state
-      queryClient.invalidateQueries(['profile', user.id]);
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
       
       toast.success('Resume uploaded successfully');
     } catch (error) {

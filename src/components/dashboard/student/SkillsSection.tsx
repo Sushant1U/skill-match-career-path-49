@@ -44,7 +44,7 @@ export function SkillsSection() {
             
           if (error) throw error;
           
-          queryClient.invalidateQueries(['profile', user?.id]);
+          queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
         } catch (error) {
           console.error('Error updating skill score:', error);
         }

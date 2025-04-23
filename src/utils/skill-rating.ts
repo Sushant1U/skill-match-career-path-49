@@ -1,12 +1,13 @@
 
-import { analyzeSkillSet } from './skill-analysis';
+import { analyzeSkillSet } from './skills/analyzer';
+export { analyzeSkillSet };
 
 export async function calculateSkillScore(
   skills: string[], 
   proficiencyLevels: Record<string, number> = {}
 ) {
   try {
-    // Use the existing skill analysis utility
+    // Use the skill analysis utility
     const result = analyzeSkillSet(skills, proficiencyLevels);
     
     // Return the analysis result
