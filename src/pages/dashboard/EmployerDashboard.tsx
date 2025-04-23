@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { Navbar } from '@/components/layout/Navbar';
@@ -23,7 +22,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/sonner';
 
-// Mock data for demonstration (we'll implement real notifications and applicants later)
 const mockNotifications: Notification[] = [
   {
     id: '1',
@@ -71,7 +69,6 @@ export default function EmployerDashboard() {
   const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   
-  // Fetch employer's posted jobs from Supabase
   const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ['employer-jobs', user?.id],
     queryFn: async () => {
@@ -102,7 +99,6 @@ export default function EmployerDashboard() {
     enabled: !!user
   });
 
-  // Fetch employer profile
   const { data: profile } = useQuery({
     queryKey: ['employer-profile', user?.id],
     queryFn: async () => {
@@ -120,7 +116,6 @@ export default function EmployerDashboard() {
     enabled: !!user
   });
 
-  // Mutation to change job status
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: 'active' | 'closed' }) => {
       const { error } = await supabase
@@ -161,7 +156,6 @@ export default function EmployerDashboard() {
     );
   };
 
-  // Count active and closed jobs
   const activeJobs = jobs.filter(job => job.status === 'active').length;
   const closedJobs = jobs.filter(job => job.status === 'closed').length;
   const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0);
@@ -179,7 +173,6 @@ export default function EmployerDashboard() {
           </Button>
         </div>
 
-        {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
@@ -231,9 +224,7 @@ export default function EmployerDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content - 2/3 width on large screens */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Active job postings */}
             <DashboardCard 
               title="Job Postings" 
               icon={<Briefcase size={20} />}
@@ -258,7 +249,6 @@ export default function EmployerDashboard() {
               )}
             </DashboardCard>
 
-            {/* Recent applicants */}
             <DashboardCard 
               title="Recent Applicants" 
               icon={<Users size={20} />}
@@ -276,7 +266,6 @@ export default function EmployerDashboard() {
               </div>
             </DashboardCard>
 
-            {/* Analytics */}
             <DashboardCard 
               title="Analytics & Insights" 
               icon={<PieChart size={20} />}
@@ -327,9 +316,7 @@ export default function EmployerDashboard() {
             </DashboardCard>
           </div>
 
-          {/* Sidebar - 1/3 width on large screens */}
           <div className="space-y-6">
-            {/* Company profile card */}
             <DashboardCard 
               title="Company Profile" 
               icon={<Building size={20} />}
@@ -360,7 +347,6 @@ export default function EmployerDashboard() {
               </Button>
             </DashboardCard>
             
-            {/* Notifications */}
             <DashboardCard 
               title="Notifications" 
               icon={<Bell size={20} />}
@@ -375,7 +361,6 @@ export default function EmployerDashboard() {
               />
             </DashboardCard>
 
-            {/* Quick actions */}
             <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-800 mb-4">Quick Actions</h3>
               <div className="space-y-3">

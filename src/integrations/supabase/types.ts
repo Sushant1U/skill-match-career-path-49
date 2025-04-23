@@ -51,6 +51,57 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          company_description: string | null
+          company_name: string | null
+          created_at: string | null
+          email: string
+          id: string
+          industry: string | null
+          location: string | null
+          logo_url: string | null
+          name: string | null
+          qualifications: string[] | null
+          resume_url: string | null
+          role: string
+          skills: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          industry?: string | null
+          location?: string | null
+          logo_url?: string | null
+          name?: string | null
+          qualifications?: string[] | null
+          resume_url?: string | null
+          role: string
+          skills?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          industry?: string | null
+          location?: string | null
+          logo_url?: string | null
+          name?: string | null
+          qualifications?: string[] | null
+          resume_url?: string | null
+          role?: string
+          skills?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
