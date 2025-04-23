@@ -1,19 +1,16 @@
-import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { User, FileUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
 import { Link } from 'react-router-dom';
 import { Spinner } from '@/components/ui/spinner';
 import { ResumeUpload } from './ResumeUpload';
 
 export function ProfileSection() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [uploading, setUploading] = useState(false);
   
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', user?.id],
@@ -31,69 +28,6 @@ export function ProfileSection() {
     },
     enabled: !!user?.id
   });
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-    
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
-      return;
-    }
-    
-    const maxSizeMB = 5;
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.error(`File size exceeds ${maxSizeMB}MB limit`);
-      return;
-    }
-    
-    try {
-      setUploading(true);
-      
-      // First check if the bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.some(bucket => bucket.name === 'resumes')) {
-        await supabase.storage.createBucket('resumes', {
-          public: true,
-          fileSizeLimit: 5 * 1024 * 1024 // 5MB
-        });
-      }
-      
-      const fileName = `${user.id}-${Date.now()}-${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
-      
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          resume_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-      
-      if (updateError) throw updateError;
-
-      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
-      
-      toast.success('Resume uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading resume:', error);
-      toast.error('Failed to upload resume');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const getProfileCompleteness = () => {
     if (!profile) return 0;
@@ -145,25 +79,7 @@ export function ProfileSection() {
             <Spinner size="sm" />
           </div>
         ) : (
-          <>
-            {profile?.resume_url ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <a 
-                    href={profile.resume_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-platformBlue hover:text-platformBlue-dark hover:underline"
-                  >
-                    View Current Resume
-                  </a>
-                </div>
-                <ResumeUpload />
-              </div>
-            ) : (
-              <ResumeUpload />
-            )}
-          </>
+          <ResumeUpload />
         )}
       </div>
     </DashboardCard>

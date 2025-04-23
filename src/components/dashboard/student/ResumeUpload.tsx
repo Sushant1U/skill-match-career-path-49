@@ -37,6 +37,7 @@ export function ResumeUpload() {
         console.error('Error fetching profile:', error);
         return null;
       }
+      console.log('Profile data fetched:', data);
       return data;
     },
     enabled: !!user?.id,
@@ -64,15 +65,6 @@ export function ResumeUpload() {
       console.log('Uploading file:', fileName);
       
       try {
-        // First check if the bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const resumeBucketExists = buckets?.some(b => b.name === 'resumes');
-        
-        if (!resumeBucketExists) {
-          console.error('Resumes bucket does not exist');
-          throw new Error('Storage bucket not found. Please contact support.');
-        }
-        
         // Upload the file
         const { error: uploadError, data: uploadData } = await supabase.storage
           .from('resumes')
@@ -132,6 +124,9 @@ export function ResumeUpload() {
     try {
       setUploading(true);
       await resumeUploadMutation.mutateAsync(file);
+    } catch (error) {
+      console.error('Error during upload:', error);
+      // Error is handled by mutation
     } finally {
       setUploading(false);
       if (event.target) {
@@ -156,13 +151,17 @@ export function ResumeUpload() {
     <div className="mt-4">
       <label htmlFor="resume-upload" className="cursor-pointer block w-full">
         <Button className="w-full" variant="outline" disabled={uploading}>
-          <FileUp className="mr-2 h-4 w-4" />
           {uploading ? (
             <>
               <Spinner size="sm" className="mr-2" />
               Uploading...
             </>
-          ) : 'Upload Resume (PDF, Max 5MB)'}
+          ) : (
+            <>
+              <FileUp className="mr-2 h-4 w-4" />
+              Upload Resume (PDF, Max 5MB)
+            </>
+          )}
         </Button>
         <input
           id="resume-upload"
