@@ -38,7 +38,7 @@ export function SkillsSection() {
   const skillAnalysis: SkillAnalysisResult = profile?.skill_analysis 
     ? (typeof profile.skill_analysis === 'string' 
         ? JSON.parse(profile.skill_analysis) 
-        : profile.skill_analysis as SkillAnalysisResult)
+        : profile.skill_analysis as unknown as SkillAnalysisResult)
     : {
         score: 0,
         strengths: [],
