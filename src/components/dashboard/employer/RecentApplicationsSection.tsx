@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Check, X, Mail } from "lucide-react";
@@ -138,7 +137,6 @@ export function RecentApplicationsSection() {
   };
 
   const handleReject = (applicationId: string) => {
-    // Delete the application instead of just updating its status
     deleteApplicationMutation.mutate(applicationId);
   };
 
@@ -195,7 +193,6 @@ export function RecentApplicationsSection() {
                     variant="outline"
                     className="border-red-500 text-red-600 hover:bg-red-50"
                     onClick={() => handleReject(application.id)}
-                    disabled={application.status === 'rejected'}
                   >
                     <X className="h-4 w-4 mr-1" />
                     Reject

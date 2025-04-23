@@ -49,7 +49,7 @@ export function ApplicationCard({
       case 'contacted':
         return 'secondary';
       default:
-        return 'secondary';
+        return 'default';
     }
   };
   

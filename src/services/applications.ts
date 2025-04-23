@@ -7,7 +7,7 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
     .from('applications')
     .select(`
       *,
-      student:profiles(id, name, email, location, bio, skills, qualifications, resume_url, skillScore)
+      student:profiles(id, name, email, location, bio, skills, qualifications, resume_url, skill_score)
     `)
     .order('created_at', { ascending: false });
   
@@ -42,7 +42,7 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
       skills: app.student.skills || [],
       qualifications: app.student.qualifications || [],
       resumeUrl: app.student.resume_url,
-      skillScore: app.student.skillScore
+      skillScore: app.student.skill_score // Changed from skillScore to skill_score to match database schema
     } : undefined
   }));
 }
@@ -98,7 +98,7 @@ export async function fetchStudentProfile(studentId: string): Promise<Student | 
     skills: data.skills || [],
     qualifications: data.qualifications || [],
     resumeUrl: data.resume_url,
-    skillScore: data.skill_score
+    skillScore: data.skill_score // Changed from skillScore to skill_score to match database schema
   };
 }
 
