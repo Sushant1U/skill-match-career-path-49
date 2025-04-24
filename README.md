@@ -1,73 +1,142 @@
-# Welcome to your Lovable project
 
-## Project info
+# Career Portal Platform
 
-**URL**: https://lovable.dev/projects/b42b2650-5d3d-4f72-8178-fde060118529
+A modern career platform connecting students with employers, featuring AI-powered career guidance and job matching.
 
-## How can I edit this code?
+## 🚀 Tech Stack
 
-There are several ways of editing your application.
+### Frontend
+- **React 18** with TypeScript for type-safe development
+- **Vite** for fast development and optimized builds
+- **Tailwind CSS** for utility-first styling
+- **shadcn/ui** for beautiful, accessible UI components
+- **Tanstack Query** for efficient data fetching and caching
+- **React Router** for client-side routing
+- **Recharts** for data visualization
+- **Lucide Icons** for modern iconography
 
-**Use Lovable**
+### Backend (Supabase)
+- **PostgreSQL** database
+- **Row Level Security** for data protection
+- **Edge Functions** for serverless computing
+- **Real-time subscriptions** for live updates
+- **Storage** for file uploads (resumes)
+- **Authentication** with email/password
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b42b2650-5d3d-4f72-8178-fde060118529) and start prompting.
+### AI Integration
+- **OpenRouter API** with Meta's Llama 4 Scout model for career guidance
+- Custom AI assistant (Sarthi) for personalized career advice
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏗️ Architecture
 
-**Use your preferred IDE**
+### Data Flow
+1. **Authentication Flow**
+   - Users sign up/login through Supabase Auth
+   - User profiles are automatically created in the profiles table
+   - Role-based access control (student/employer)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Job Posting Flow**
+   - Employers create job listings
+   - Data stored in jobs table
+   - Real-time updates for new postings
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. **Application Flow**
+   - Students browse and apply to jobs
+   - Applications stored with resume attachments
+   - Automatic notifications for status updates
 
-Follow these steps:
+4. **AI Assistant Flow**
+   - User messages processed through Edge Functions
+   - OpenRouter API integration for AI responses
+   - Context-aware career guidance
 
+### Database Schema
+- **profiles**: User information and roles
+- **jobs**: Job listings and requirements
+- **applications**: Job applications and status
+- **notifications**: System notifications
+
+## 🔐 Security
+
+- Row Level Security (RLS) policies protect data access
+- Secure file storage for resumes
+- Environment variables for sensitive credentials
+- API keys managed through Edge Functions
+
+## 🎯 Key Features
+
+1. **For Students**
+   - AI-powered career guidance (Sarthi)
+   - Skill assessment and recommendations
+   - Job applications tracking
+   - Resume management
+   - Personalized job recommendations
+
+2. **For Employers**
+   - Job posting management
+   - Applicant tracking
+   - Candidate shortlisting
+   - Company profile management
+   - Application analytics
+
+3. **Shared Features**
+   - Real-time notifications
+   - Profile management
+   - Responsive design
+   - Dark/light mode support
+
+## 🚀 Getting Started
+
+1. Clone the repository
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Set up environment variables
+```sh
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_key
+OPENROUTER_API_KEY=your_openrouter_key
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Start the development server
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📱 Responsive Design
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The application is fully responsive and optimized for:
+- Desktop (1024px and above)
+- Tablet (768px to 1023px)
+- Mobile (below 768px)
 
-**Use GitHub Codespaces**
+## 🧪 Testing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Jest for unit testing
+- React Testing Library for component testing
+- Type checking with TypeScript
 
-## What technologies are used for this project?
+## 📦 Deployment
 
-This project is built with:
+The project can be deployed through Lovable's built-in deployment system:
+1. Click on Share -> Publish in the Lovable interface
+2. Optional: Connect a custom domain through Project Settings
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🤝 Contributing
 
-## How can I deploy this project?
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-Simply open [Lovable](https://lovable.dev/projects/b42b2650-5d3d-4f72-8178-fde060118529) and click on Share -> Publish.
+## 📝 License
 
-## Can I connect a custom domain to my Lovable project?
+This project is MIT licensed.
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
