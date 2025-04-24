@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Application, Notification, Student } from '@/types';
 
@@ -7,7 +6,8 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
     .from('applications')
     .select(`
       *,
-      student:profiles(id, name, email, location, bio, skills, qualifications, resume_url, skill_score)
+      jobs(title, company),
+      student:profiles!applications_student_id_fkey(id, name, email, location, bio, skills, qualifications, resume_url, skill_score)
     `)
     .order('created_at', { ascending: false });
   
@@ -26,28 +26,37 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
     throw error;
   }
   
+  console.log('Raw application data from DB:', data);
+  
   return (data || []).map(app => ({
     id: app.id,
     jobId: app.job_id,
     studentId: app.student_id,
     status: app.status,
     createdAt: app.created_at,
-    resumeUrl: app.resume_url || app.student?.resume_url,
+    resumeUrl: app.resume_url || (app.student?.resume_url || null),
+    jobTitle: app.jobs?.title,
+    jobCompany: app.jobs?.company,
     student: app.student ? {
       id: app.student.id,
-      name: app.student.name || 'Unknown',
+      name: app.student.name || 'Anonymous',
       email: app.student.email || '',
-      location: app.student.location || 'No location set',
-      bio: app.student.bio,
+      location: app.student.location || 'Unknown location',
+      bio: app.student.bio || '',
       skills: app.student.skills || [],
       qualifications: app.student.qualifications || [],
-      resumeUrl: app.student.resume_url,
-      skillScore: app.student.skill_score // Changed from skillScore to skill_score to match database schema
-    } : undefined
+      resumeUrl: app.student.resume_url || null,
+      skillScore: app.student.skill_score
+    } : null
   }));
 }
 
 export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<Notification[]> {
+  if (!userId) {
+    console.error('No user ID provided to fetch notifications');
+    return [];
+  }
+
   let query = supabase
     .from('notifications')
     .select('*')
@@ -100,7 +109,7 @@ export async function fetchStudentProfile(studentId: string): Promise<Student | 
     skills: data.skills || [],
     qualifications: data.qualifications || [],
     resumeUrl: data.resume_url,
-    skillScore: data.skill_score // Changed from skillScore to skill_score to match database schema
+    skillScore: data.skill_score
   };
 }
 
@@ -137,4 +146,48 @@ export async function applyForJob(jobId: string, studentId: string, resumeUrl?: 
     console.error('Error applying for job:', error);
     throw error;
   }
+}
+
+export async function deleteNotification(id: string): Promise<boolean> {
+  if (!id) {
+    console.error('No notification ID provided for deletion');
+    return false;
+  }
+  
+  console.log('Attempting to delete notification with ID:', id);
+  
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', id);
+    
+  if (error) {
+    console.error('Error deleting notification:', error);
+    return false;
+  }
+  
+  console.log('Successfully deleted notification with ID:', id);
+  return true;
+}
+
+export async function deleteAllUserNotifications(userId: string): Promise<boolean> {
+  if (!userId) {
+    console.error('No user ID provided for bulk notification deletion');
+    return false;
+  }
+  
+  console.log('Attempting to delete all notifications for user:', userId);
+  
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('user_id', userId);
+    
+  if (error) {
+    console.error('Error deleting all user notifications:', error);
+    return false;
+  }
+  
+  console.log('Successfully deleted all notifications for user:', userId);
+  return true;
 }

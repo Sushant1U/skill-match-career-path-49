@@ -3,10 +3,9 @@ import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { NotificationList } from '@/components/dashboard/NotificationList';
 import { Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchNotificationsForUser } from '@/services/applications';
+import { fetchNotificationsForUser, deleteNotification, deleteAllUserNotifications } from '@/services/applications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Notification } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
 export function NotificationsSection() {
@@ -25,21 +24,18 @@ export function NotificationsSection() {
 
   const markNotificationAsRead = async (id: string) => {
     try {
-      if (!user?.id) return;
-      
-      console.log('Removing notification with ID:', id);
-      
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (!user?.id || !id) {
+        console.error('Missing user ID or notification ID');
+        return;
       }
       
-      console.log('Notification successfully deleted from database');
+      console.log('Deleting notification with ID:', id);
+      
+      const success = await deleteNotification(id);
+      
+      if (!success) {
+        throw new Error('Failed to delete notification');
+      }
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
@@ -50,28 +46,25 @@ export function NotificationsSection() {
       
       toast.success('Notification removed');
     } catch (error) {
-      console.error('Error removing notification:', error);
+      console.error('Error deleting notification:', error);
       toast.error('Failed to remove notification');
     }
   };
 
   const markAllNotificationsAsRead = async () => {
     try {
-      if (!user?.id) return;
-      
-      console.log('Removing all notifications for user:', user.id);
-      
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (!user?.id) {
+        console.error('Missing user ID');
+        return;
       }
       
-      console.log('All notifications successfully deleted from database');
+      console.log('Deleting all notifications for user:', user.id);
+      
+      const success = await deleteAllUserNotifications(user.id);
+      
+      if (!success) {
+        throw new Error('Failed to delete all notifications');
+      }
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
@@ -82,7 +75,7 @@ export function NotificationsSection() {
       
       toast.success('All notifications removed');
     } catch (error) {
-      console.error('Error removing all notifications:', error);
+      console.error('Error deleting all notifications:', error);
       toast.error('Failed to remove notifications');
     }
   };

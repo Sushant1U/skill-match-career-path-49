@@ -1,7 +1,7 @@
 
 import { Application, Student } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Check, X, Mail, FileText } from "lucide-react";
+import { Check, X, Mail, FileText, User } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { useState } from "react";
 import { ResumePreviewDialog } from "@/components/dashboard/student/ResumePreviewDialog";
@@ -61,11 +61,26 @@ export const ApplicationItem = ({
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-1">
-            {studentName}
-          </h3>
-          <p className="text-gray-500 mb-3">{studentLocation}</p>
+        <div className="flex items-start">
+          {student ? (
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-1">
+                {studentName}
+              </h3>
+              <p className="text-gray-500 mb-3">{studentLocation}</p>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <User className="h-10 w-10 text-gray-300 mr-3" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-1">
+                  {studentName}
+                </h3>
+                <p className="text-gray-500 mb-3">{studentLocation}</p>
+                <p className="text-xs text-amber-500">Student profile data unavailable</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex space-x-2">
           <Button 
@@ -159,4 +174,4 @@ export const ApplicationItem = ({
       )}
     </div>
   );
-}
+};
