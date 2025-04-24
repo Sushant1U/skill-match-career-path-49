@@ -5,11 +5,14 @@ import { NotificationList } from '@/components/dashboard/NotificationList';
 import { Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNotificationsForUser } from '@/services/applications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Notification } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
 
 export function NotificationsSection() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading, error } = useQuery({
     queryKey: ['notifications', user?.id],
@@ -22,33 +25,37 @@ export function NotificationsSection() {
 
   const markNotificationAsRead = async (id: string) => {
     try {
-      const { error } = await fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      }).then(res => res.json());
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
 
       if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      toast.success('Notification removed');
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error removing notification:', error);
+      toast.error('Failed to remove notification');
     }
   };
 
   const markAllNotificationsAsRead = async () => {
     try {
-      const { error } = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user?.id }),
-      }).then(res => res.json());
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user?.id);
 
       if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      toast.success('All notifications removed');
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('Error removing all notifications:', error);
+      toast.error('Failed to remove notifications');
     }
   };
 

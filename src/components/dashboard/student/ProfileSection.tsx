@@ -1,16 +1,17 @@
-
 import { Button } from '@/components/ui/button';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
-import { User, FileUp } from 'lucide-react';
+import { User, FileUp, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { Spinner } from '@/components/ui/spinner';
 import { ResumeUpload } from './ResumeUpload';
+import { toast } from '@/components/ui/sonner';
 
 export function ProfileSection() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', user?.id],
@@ -30,8 +31,8 @@ export function ProfileSection() {
       return data;
     },
     enabled: !!user?.id,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    retry: 2 // Retry failed requests twice
+    staleTime: 30000,
+    retry: 2
   });
 
   const getProfileCompleteness = () => {
@@ -49,6 +50,28 @@ export function ProfileSection() {
   };
   
   const completionPercentage = getProfileCompleteness();
+
+  const handleRemoveResume = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          resume_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      toast.success('Resume removed successfully');
+    } catch (error) {
+      console.error('Error removing resume:', error);
+      toast.error('Failed to remove resume');
+    }
+  };
 
   return (
     <DashboardCard 
@@ -84,7 +107,20 @@ export function ProfileSection() {
             <Spinner size="sm" />
           </div>
         ) : (
-          <ResumeUpload />
+          <>
+            <ResumeUpload />
+            {profile?.resume_url && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full mt-2"
+                onClick={handleRemoveResume}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove Resume
+              </Button>
+            )}
+          </>
         )}
       </div>
     </DashboardCard>
