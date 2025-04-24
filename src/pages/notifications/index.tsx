@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,10 +9,13 @@ import { Bell } from 'lucide-react';
 import { fetchNotificationsForUser } from '@/services/applications';
 import { Notification } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function NotificationsPage() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id, filter],
@@ -27,13 +30,39 @@ export default function NotificationsPage() {
   });
 
   const markNotificationAsRead = async (id: string) => {
-    // Implementation will be added in future updates
-    console.log('Marking notification as read:', id);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id, filter] });
+      toast.success('Notification removed');
+    } catch (error) {
+      console.error('Error removing notification:', error);
+      toast.error('Failed to remove notification');
+    }
   };
 
   const markAllNotificationsAsRead = async () => {
-    // Implementation will be added in future updates
-    console.log('Marking all notifications as read');
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id, filter] });
+      toast.success('All notifications removed');
+    } catch (error) {
+      console.error('Error removing all notifications:', error);
+      toast.error('Failed to remove notifications');
+    }
   };
 
   return (

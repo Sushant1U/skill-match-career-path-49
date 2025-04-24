@@ -29,14 +29,14 @@ export function NotificationList({
             <Badge className="ml-2 bg-platformBlue">{unreadCount}</Badge>
           )}
         </div>
-        {onMarkAllAsRead && unreadCount > 0 && (
+        {onMarkAllAsRead && notifications.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onMarkAllAsRead}
             className="text-xs text-platformBlue hover:text-platformBlue-dark"
           >
-            Mark all as read
+            Remove all
           </Button>
         )}
       </div>
@@ -59,7 +59,7 @@ export function NotificationList({
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-              {!notification.read && onMarkAsRead && (
+              {onMarkAsRead && (
                 <div className="mt-2 text-right">
                   <Button
                     variant="ghost"
@@ -67,7 +67,7 @@ export function NotificationList({
                     onClick={() => onMarkAsRead(notification.id)}
                     className="text-xs text-platformBlue hover:text-platformBlue-dark"
                   >
-                    Mark as read
+                    Remove
                   </Button>
                 </div>
               )}

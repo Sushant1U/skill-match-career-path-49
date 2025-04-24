@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Plus, Bell } from 'lucide-react'; 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -15,10 +15,13 @@ import { DashboardStats } from '@/components/dashboard/employer/DashboardStats';
 import { QuickActions } from '@/components/dashboard/employer/QuickActions';
 import { CompanyProfileCard } from '@/components/dashboard/employer/CompanyProfileCard';
 import { Notification } from '@/types';
+import { toast } from '@/components/ui/sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Fetch notifications
   const { data: notifications = [] } = useQuery({
@@ -30,6 +33,42 @@ export default function EmployerDashboard() {
     enabled: !!user,
     refetchInterval: 60000 // Refetch every minute
   });
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      toast.success('Notification removed');
+    } catch (error) {
+      console.error('Error removing notification:', error);
+      toast.error('Failed to remove notification');
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      // Invalidate and refetch notifications
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      toast.success('All notifications removed');
+    } catch (error) {
+      console.error('Error removing all notifications:', error);
+      toast.error('Failed to remove notifications');
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -68,6 +107,8 @@ export default function EmployerDashboard() {
               <NotificationList 
                 notifications={notifications}
                 limit={3}
+                onMarkAsRead={markNotificationAsRead}
+                onMarkAllAsRead={markAllNotificationsAsRead}
               />
             </DashboardCard>
 

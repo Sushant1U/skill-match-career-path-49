@@ -1,5 +1,4 @@
 
-import { useEffect, useState } from 'react';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { NotificationList } from '@/components/dashboard/NotificationList';
 import { Bell } from 'lucide-react';
