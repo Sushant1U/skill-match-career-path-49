@@ -1,6 +1,5 @@
-
 import { useState, useRef, useEffect, FormEvent } from 'react';
-import { Bot, Send } from 'lucide-react';
+import { Bot, Send, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -60,7 +59,6 @@ export function ModernChatBot() {
     setIsLoading(true);
 
     try {
-      // Check if it's a resume request
       if (userMessage.toLowerCase().includes('resume') && 
           (userMessage.toLowerCase().includes('build') || 
            userMessage.toLowerCase().includes('create') || 
@@ -84,7 +82,6 @@ export function ModernChatBot() {
         return;
       }
       
-      // Handle job search requests
       if ((userMessage.toLowerCase().includes('job') || userMessage.toLowerCase().includes('work')) && 
           (userMessage.toLowerCase().includes('find') || 
            userMessage.toLowerCase().includes('search') || 
@@ -130,7 +127,6 @@ export function ModernChatBot() {
         return;
       }
       
-      // Regular chat message
       const { data, error } = await supabase.functions.invoke('career-ai-chat', {
         body: {
           message: userMessage,
@@ -149,7 +145,6 @@ export function ModernChatBot() {
         content: data.response 
       }]);
       
-      // If the AI mentioned jobs, show job suggestions
       if (data.hasJobContext && data.response.toLowerCase().includes('job')) {
         await fetchAvailableJobs();
       }
