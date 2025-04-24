@@ -25,7 +25,7 @@ export function RecentApplicationsSection() {
           table: 'applications'
         },
         (payload) => {
-          console.log('Realtime update received:', payload);
+          console.log('Realtime update received for applications:', payload);
           queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
           queryClient.invalidateQueries({ queryKey: ['employer-dashboard-stats'] });
           queryClient.invalidateQueries({ queryKey: ['employer-shortlisted-count'] });
@@ -67,13 +67,16 @@ export function RecentApplicationsSection() {
     deleteApplication
   } = useApplications(user?.id);
 
-  console.log("Applications in RecentApplicationsSection:", applications);
+  console.log("Applications loaded in RecentApplicationsSection:", applications);
+  console.log("Current user in RecentApplicationsSection:", user);
 
   const handleShortlist = (applicationId: string) => {
+    console.log("Shortlisting application with ID:", applicationId);
     updateStatus(applicationId, 'shortlisted');
   };
 
   const handleReject = (applicationId: string) => {
+    console.log("Rejecting application with ID:", applicationId);
     deleteApplication(applicationId);
   };
 

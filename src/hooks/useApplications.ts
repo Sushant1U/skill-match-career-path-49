@@ -16,7 +16,7 @@ export const useApplications = (userId?: string) => {
       console.log("Fetching applications for employer:", userId);
       try {
         const applications = await fetchApplicationsForEmployer();
-        console.log("Fetched applications:", applications);
+        console.log("Fetched applications with student data:", applications);
         return applications;
       } catch (error) {
         console.error("Error in useApplications hook:", error);

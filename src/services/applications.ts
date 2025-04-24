@@ -2,12 +2,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { Application, Notification, Student } from '@/types';
 
 export async function fetchApplicationsForEmployer(jobId?: string, limit?: number): Promise<Application[]> {
+  console.log("Fetching applications with params - jobId:", jobId, "limit:", limit);
+  
   let query = supabase
     .from('applications')
     .select(`
-      *,
-      jobs(title, company),
-      student:profiles!applications_student_id_fkey(id, name, email, location, bio, skills, qualifications, resume_url, skill_score)
+      id,
+      job_id,
+      student_id,
+      status,
+      created_at,
+      resume_url,
+      jobs (
+        title,
+        company
+      ),
+      profiles (
+        id,
+        name,
+        email,
+        location,
+        bio,
+        skills,
+        qualifications,
+        resume_url,
+        skill_score
+      )
     `)
     .order('created_at', { ascending: false });
   
@@ -28,27 +48,32 @@ export async function fetchApplicationsForEmployer(jobId?: string, limit?: numbe
   
   console.log('Raw application data from DB:', data);
   
-  return (data || []).map(app => ({
-    id: app.id,
-    jobId: app.job_id,
-    studentId: app.student_id,
-    status: app.status,
-    createdAt: app.created_at,
-    resumeUrl: app.resume_url || (app.student?.resume_url || null),
-    jobTitle: app.jobs?.title,
-    jobCompany: app.jobs?.company,
-    student: app.student ? {
-      id: app.student.id,
-      name: app.student.name || 'Anonymous',
-      email: app.student.email || '',
-      location: app.student.location || 'Unknown location',
-      bio: app.student.bio || '',
-      skills: app.student.skills || [],
-      qualifications: app.student.qualifications || [],
-      resumeUrl: app.student.resume_url || null,
-      skillScore: app.student.skill_score
-    } : null
-  }));
+  return (data || []).map(app => {
+    // Extract student profile from the profile join
+    const studentProfile = app.profiles;
+    
+    return {
+      id: app.id,
+      jobId: app.job_id,
+      studentId: app.student_id,
+      status: app.status,
+      createdAt: app.created_at,
+      resumeUrl: app.resume_url || (studentProfile?.resume_url || null),
+      jobTitle: app.jobs?.title || 'Unknown Job',
+      jobCompany: app.jobs?.company || 'Unknown Company',
+      student: studentProfile ? {
+        id: studentProfile.id,
+        name: studentProfile.name || 'Anonymous',
+        email: studentProfile.email || '',
+        location: studentProfile.location || 'Unknown location',
+        bio: studentProfile.bio || '',
+        skills: studentProfile.skills || [],
+        qualifications: studentProfile.qualifications || [],
+        resumeUrl: studentProfile.resume_url || null,
+        skillScore: studentProfile.skill_score
+      } : null
+    };
+  });
 }
 
 export async function fetchNotificationsForUser(userId: string, limit?: number): Promise<Notification[]> {
