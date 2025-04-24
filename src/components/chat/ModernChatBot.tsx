@@ -44,7 +44,14 @@ export function ModernChatBot() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Chat error:', error);
+        throw new Error(error.message || 'Failed to get response from Sarthi');
+      }
+
+      if (!data || !data.response) {
+        throw new Error('Invalid response received from Sarthi');
+      }
 
       setMessages(prev => [...prev, { 
         role: 'assistant', 
@@ -52,7 +59,11 @@ export function ModernChatBot() {
       }]);
     } catch (error) {
       console.error('Chat error:', error);
-      toast.error('Failed to get response from Sarthi');
+      toast.error('Failed to get response from Sarthi. Please try again.');
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "I'm sorry, but I'm having trouble connecting right now. Please try again in a moment." 
+      }]);
     } finally {
       setIsLoading(false);
     }
