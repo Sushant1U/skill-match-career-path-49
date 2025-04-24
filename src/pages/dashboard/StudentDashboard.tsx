@@ -8,6 +8,7 @@ import { JobSearchSection } from '@/components/dashboard/student/JobSearchSectio
 import { AppliedJobsSection } from '@/components/dashboard/student/AppliedJobsSection';
 import { RecommendedJobsSection } from '@/components/dashboard/student/RecommendedJobsSection';
 import { NotificationsSection } from '@/components/dashboard/student/NotificationsSection';
+import { ModernChatBot } from '@/components/chat/ModernChatBot';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { FileUp } from 'lucide-react';
@@ -41,6 +42,7 @@ export default function StudentDashboard() {
           {/* Sidebar - 1/3 width on large screens */}
           <div className="space-y-6">
             <ProfileSection />
+            <ModernChatBot />
             <NotificationsSection />
             <RecommendedJobsSection />
           </div>

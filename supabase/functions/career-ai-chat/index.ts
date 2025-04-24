@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `You are a career guidance AI assistant focused on helping students with:
+const SYSTEM_PROMPT = `You are Sarthi, a career guidance AI assistant focused on helping students with:
 1. Resume writing and optimization
 2. Job search strategies
 3. Interview preparation
@@ -24,26 +24,34 @@ serve(async (req) => {
 
   try {
     const { message, context } = await req.json();
-    const openAiKey = Deno.env.get('OPENAI_API_KEY');
+    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
 
-    if (!openAiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!perplexityKey) {
+      throw new Error('Perplexity API key not configured');
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAiKey}`,
+        'Authorization': `Bearer ${perplexityKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-sonar-small-128k-online',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
           ...(context || []),
-          { role: 'user', content: message }
+          {
+            role: 'user',
+            content: message
+          }
         ],
-        temperature: 0.7,
+        temperature: 0.2,
+        top_p: 0.9,
+        max_tokens: 1000,
       }),
     });
 
