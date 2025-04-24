@@ -65,6 +65,8 @@ export async function fetchNotificationsForUser(userId: string, limit?: number):
     return [];
   }
   
+  console.log(`Fetched ${data?.length || 0} notifications for user ${userId}`);
+  
   return (data || []).map(notification => ({
     id: notification.id,
     userId: notification.user_id,

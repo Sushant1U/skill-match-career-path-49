@@ -36,18 +36,29 @@ export default function EmployerDashboard() {
 
   const markNotificationAsRead = async (id: string) => {
     try {
+      if (!user?.id) return;
+      
+      console.log('Removing notification with ID:', id);
+      
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Notification successfully deleted');
       
       // Invalidate and refetch notifications
-      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user.id] });
       
       // Also invalidate the notifications page data
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, 'all'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, 'unread'] });
       
       toast.success('Notification removed');
     } catch (error) {
@@ -60,18 +71,27 @@ export default function EmployerDashboard() {
     try {
       if (!user?.id) return;
       
+      console.log('Removing all notifications for user:', user.id);
+      
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('All notifications successfully deleted');
       
       // Invalidate and refetch notifications
-      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['employer-notifications', user.id] });
       
       // Also invalidate the notifications page data
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, 'all'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, 'unread'] });
       
       toast.success('All notifications removed');
     } catch (error) {
