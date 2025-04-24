@@ -17,6 +17,7 @@ export function NotificationsSection() {
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      console.log("Fetching notifications for student:", user.id);
       return fetchNotificationsForUser(user.id, 3) as Promise<Notification[]>;
     },
     enabled: !!user?.id
@@ -38,7 +39,7 @@ export function NotificationsSection() {
         throw error;
       }
       
-      console.log('Notification successfully deleted');
+      console.log('Notification successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
@@ -70,7 +71,7 @@ export function NotificationsSection() {
         throw error;
       }
       
-      console.log('All notifications successfully deleted');
+      console.log('All notifications successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });

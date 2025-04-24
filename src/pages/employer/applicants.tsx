@@ -79,7 +79,7 @@ export default function ApplicantsPage() {
         let studentProfiles: Record<string, any> = {};
         
         if (studentIds.length > 0) {
-          // Important change: Use this specific query to get profiles
+          // Use a single query to get all profiles at once
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('*')
@@ -97,14 +97,16 @@ export default function ApplicantsPage() {
               return acc;
             }, {} as Record<string, any>);
             
-            console.log("Fetched student profiles:", profiles.length);
+            console.log("Fetched student profiles map:", studentProfiles);
           }
         }
         
         // Format the data for consumption by the UI
         const formattedApplications = applications.map(app => {
           const studentProfile = studentProfiles[app.student_id || ''];
-          console.log("Processing application for student:", app.student_id, "Found profile:", !!studentProfile);
+          console.log("Processing application for student:", app.student_id, 
+                     "Found profile:", !!studentProfile,
+                     "Profile data:", studentProfile);
           
           return {
             id: app.id,

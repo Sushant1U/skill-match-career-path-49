@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Plus, Bell } from 'lucide-react'; 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,10 +23,11 @@ export default function EmployerDashboard() {
   const queryClient = useQueryClient();
 
   // Fetch notifications
-  const { data: notifications = [] } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['employer-notifications', user?.id],
     queryFn: async () => {
       if (!user) return [];
+      console.log("Fetching notifications for employer:", user.id);
       return fetchNotificationsForUser(user.id, 5) as Promise<Notification[]>;
     },
     enabled: !!user,
@@ -50,7 +50,7 @@ export default function EmployerDashboard() {
         throw error;
       }
       
-      console.log('Notification successfully deleted');
+      console.log('Notification successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['employer-notifications', user.id] });
@@ -83,7 +83,7 @@ export default function EmployerDashboard() {
         throw error;
       }
       
-      console.log('All notifications successfully deleted');
+      console.log('All notifications successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['employer-notifications', user.id] });

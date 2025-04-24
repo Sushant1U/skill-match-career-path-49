@@ -38,8 +38,8 @@ export const useApplications = (userId?: string) => {
         return acc;
       }, {} as Record<string, { title: string, company: string }>);
       
-      // Enhanced query to fetch applications with student profiles
-      const { data: applications, error: applicationsError } = await supabase
+      // Modified query to properly fetch profile data with applications
+      const { data: applicationsWithProfiles, error: applicationsError } = await supabase
         .from('applications')
         .select(`
           id,
@@ -47,50 +47,89 @@ export const useApplications = (userId?: string) => {
           student_id,
           status,
           created_at,
-          resume_url,
-          profiles:profiles!student_id(
-            id,
-            name,
-            email,
-            location,
-            bio,
-            skills,
-            resume_url
-          )
+          resume_url
         `)
-        .in('job_id', jobIds);
+        .in('job_id', jobIds)
+        .order('created_at', { ascending: false });
       
       if (applicationsError) {
         console.error("Error fetching applications:", applicationsError);
         throw applicationsError;
       }
+
+      console.log("Raw applications:", applicationsWithProfiles);
       
-      console.log("Raw applications with student data:", applications);
-      
-      // Format the applications data for the UI
-      return applications.map(app => {
-        const student = app.profiles;
+      // Fetch all relevant student profiles separately - this solves the JOIN issue
+      if (applicationsWithProfiles && applicationsWithProfiles.length > 0) {
+        const studentIds = applicationsWithProfiles
+          .map(app => app.student_id)
+          .filter(Boolean) as string[];
         
-        return {
-          id: app.id,
-          jobId: app.job_id,
-          studentId: app.student_id,
-          status: app.status,
-          createdAt: app.created_at,
-          resumeUrl: app.resume_url || (student?.resume_url || null),
-          jobTitle: jobDetailsMap[app.job_id]?.title,
-          jobCompany: jobDetailsMap[app.job_id]?.company,
-          student: student ? {
-            id: student.id,
-            name: student.name || 'Anonymous',
-            email: student.email || '',
-            skills: student.skills || [],
-            location: student.location || 'Unknown location',
-            resumeUrl: student.resume_url || '',
-            qualifications: []
-          } : null
-        };
-      });
+        console.log("Student IDs to fetch:", studentIds);
+
+        if (studentIds.length === 0) {
+          return applicationsWithProfiles.map(app => ({
+            id: app.id,
+            jobId: app.job_id,
+            studentId: app.student_id,
+            status: app.status,
+            createdAt: app.created_at,
+            resumeUrl: app.resume_url,
+            jobTitle: jobDetailsMap[app.job_id]?.title,
+            jobCompany: jobDetailsMap[app.job_id]?.company,
+            student: null
+          }));
+        }
+        
+        // Get profiles in a separate query
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', studentIds);
+          
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+        }
+        
+        console.log("Fetched profiles:", profiles);
+        
+        // Create a lookup map for quick student profile access
+        const profilesMap: Record<string, any> = {};
+        if (profiles) {
+          profiles.forEach(profile => {
+            profilesMap[profile.id] = profile;
+          });
+        }
+        
+        // Format the applications data with student information
+        return applicationsWithProfiles.map(app => {
+          const studentProfile = app.student_id ? profilesMap[app.student_id] : null;
+          console.log(`Application ${app.id} - Student profile found:`, !!studentProfile);
+          
+          return {
+            id: app.id,
+            jobId: app.job_id,
+            studentId: app.student_id,
+            status: app.status,
+            createdAt: app.created_at,
+            resumeUrl: app.resume_url,
+            jobTitle: jobDetailsMap[app.job_id]?.title,
+            jobCompany: jobDetailsMap[app.job_id]?.company,
+            student: studentProfile ? {
+              id: studentProfile.id,
+              name: studentProfile.name || 'Anonymous',
+              email: studentProfile.email || '',
+              skills: studentProfile.skills || [],
+              location: studentProfile.location || 'Unknown location',
+              bio: studentProfile.bio || '',
+              resumeUrl: studentProfile.resume_url || '',
+              qualifications: studentProfile.qualifications || []
+            } : null
+          };
+        });
+      }
+      
+      return [];
     },
     refetchInterval: 30000,
     enabled: !!userId

@@ -21,6 +21,7 @@ export default function NotificationsPage() {
     queryKey: ['notifications', user?.id, filter],
     queryFn: async () => {
       if (!user?.id) return [];
+      console.log(`Fetching ${filter} notifications for user:`, user.id);
       const allNotifications = await fetchNotificationsForUser(user.id);
       return filter === 'all' 
         ? allNotifications 
@@ -45,7 +46,7 @@ export default function NotificationsPage() {
         throw error;
       }
       
-      console.log('Notification successfully deleted');
+      console.log('Notification successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id, filter] });
@@ -79,7 +80,7 @@ export default function NotificationsPage() {
         throw error;
       }
       
-      console.log('All notifications successfully deleted');
+      console.log('All notifications successfully deleted from database');
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user.id, filter] });
