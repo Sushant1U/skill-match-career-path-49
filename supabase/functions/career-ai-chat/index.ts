@@ -24,22 +24,24 @@ serve(async (req) => {
 
   try {
     const { message, context } = await req.json();
-    const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+    const openRouterKey = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!perplexityKey) {
-      throw new Error('Perplexity API key not configured');
+    if (!openRouterKey) {
+      throw new Error('OpenRouter API key not configured');
     }
 
-    console.log('Sending request to Perplexity API with model: llama-3.1-sonar-small-128k-online');
+    console.log('Sending request to OpenRouter API with Meta Llama 4 Scout model');
 
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${perplexityKey}`,
+        'Authorization': `Bearer ${openRouterKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://lovable.dev', // Optional, but recommended
+        'X-Title': 'Sarthi Career Assistant',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'meta-llama/llama-4-scout',
         messages: [
           {
             role: 'system',
@@ -59,7 +61,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Perplexity API error response:', errorData);
+      console.error('OpenRouter API error response:', errorData);
       throw new Error(`API responded with status ${response.status}: ${errorData}`);
     }
 
@@ -81,3 +83,4 @@ serve(async (req) => {
     });
   }
 });
+
