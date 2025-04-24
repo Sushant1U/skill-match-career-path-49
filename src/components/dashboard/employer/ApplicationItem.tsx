@@ -30,15 +30,13 @@ export const ApplicationItem = ({
     return null;
   }
   
-  // Get student data, could be null or undefined
   const student = application.student;
   console.log("Student data:", student);
 
   const handleContactStudent = () => {
     if (student?.email) {
       console.log("Contact student with email:", student.email);
-      // Open default email client with pre-filled subject
-      window.location.href = `mailto:${student.email}?subject=Regarding your application for ${application.jobTitle}&body=Dear ${student.name},`;
+      window.open(`mailto:${student.email}?subject=Regarding your application for ${application.jobTitle}&body=Dear ${student.name},`, '_blank');
       toast.success('Opening email client...');
     } else {
       console.error("Unable to contact student. Email not available.");
@@ -46,16 +44,12 @@ export const ApplicationItem = ({
     }
   };
 
-  // Determine if resume is available and get the URL
   const resumeUrl = application.resumeUrl || (student?.resumeUrl || null);
   const hasResume = Boolean(resumeUrl);
   
   console.log("Resume check - Has resume:", hasResume, "Resume URL:", resumeUrl);
 
-  // Get student name, defaulting to Anonymous if not available
   const studentName = student?.name || "Anonymous Applicant";
-  
-  // Get student location, defaulting to Unknown if not available
   const studentLocation = student?.location || "Unknown location";
 
   return (
@@ -112,24 +106,6 @@ export const ApplicationItem = ({
           <p className="text-xs text-gray-400 mt-1">
             Applied on: {new Date(application.createdAt).toLocaleDateString()}
           </p>
-        </div>
-      )}
-
-      {student?.skills && student.skills.length > 0 && (
-        <div className="mt-4">
-          <p className="text-sm font-medium mb-2">Skills:</p>
-          <div className="flex flex-wrap gap-1">
-            {student.skills.slice(0, 5).map((skill, i) => (
-              <span key={i} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
-                {skill}
-              </span>
-            ))}
-            {student.skills.length > 5 && (
-              <span className="px-2 py-1 bg-gray-100 text-xs rounded-full">
-                +{student.skills.length - 5} more
-              </span>
-            )}
-          </div>
         </div>
       )}
 
