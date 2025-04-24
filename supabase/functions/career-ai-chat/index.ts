@@ -30,6 +30,8 @@ serve(async (req) => {
       throw new Error('Perplexity API key not configured');
     }
 
+    console.log('Sending request to Perplexity API with model: llama-3.1-sonar-small-128k-online');
+
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -37,7 +39,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-4-scout',
+        model: 'llama-3.1-sonar-small-128k-online',
         messages: [
           {
             role: 'system',
@@ -55,12 +57,14 @@ serve(async (req) => {
       }),
     });
 
-    const data = await response.json();
-    console.log('AI Response:', data);
-
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Failed to get AI response');
+      const errorData = await response.text();
+      console.error('Perplexity API error response:', errorData);
+      throw new Error(`API responded with status ${response.status}: ${errorData}`);
     }
+
+    const data = await response.json();
+    console.log('AI Response received successfully:', data);
 
     return new Response(JSON.stringify({
       response: data.choices[0].message.content,

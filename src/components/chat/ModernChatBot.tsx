@@ -37,6 +37,7 @@ export function ModernChatBot() {
     setIsLoading(true);
 
     try {
+      console.log('Sending message to career-ai-chat function');
       const { data, error } = await supabase.functions.invoke('career-ai-chat', {
         body: {
           message: userMessage,
@@ -50,9 +51,12 @@ export function ModernChatBot() {
       }
 
       if (!data || !data.response) {
+        console.error('Invalid response data:', data);
         throw new Error('Invalid response received from Sarthi');
       }
 
+      console.log('Received response from career-ai-chat function:', data);
+      
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: data.response 
