@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ export function ResumeBuilder({ isOpen, onClose, resumeContent }: ResumeBuilderP
     navigator.clipboard.writeText(resumeContent);
     toast.success("Resume content copied to clipboard");
   };
-  
+
   const handleExportToPDF = async () => {
     if (!resumeContent) return;
     
@@ -38,7 +37,6 @@ export function ResumeBuilder({ isOpen, onClose, resumeContent }: ResumeBuilderP
       
       const imgData = canvas.toDataURL('image/png');
       
-      // Create PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -71,26 +69,43 @@ export function ResumeBuilder({ isOpen, onClose, resumeContent }: ResumeBuilderP
       setIsExporting(false);
     }
   };
-  
+
   const formattedContent = resumeContent.split('\n').map((line, index) => {
-    // Check if line is a section header
-    if (line.toUpperCase() === line && line.trim().length > 0) {
-      return <h2 key={index} className="text-xl font-bold mt-4 mb-2 text-platformPurple">{line}</h2>;
+    line = line.replace(/\*+/g, '').trim();
+    
+    if (line.toUpperCase() === line && line.trim().length > 0 || line.includes(':')) {
+      return (
+        <h2 key={index} className="text-xl font-bold mt-6 mb-3 text-gray-800 border-b pb-1 border-gray-200">
+          {line.replace(/\*/g, '')}
+        </h2>
+      );
     }
-    // Check if line starts with a bullet point
-    else if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
-      return <li key={index} className="ml-5 mb-1">{line.trim().substring(1).trim()}</li>;
+    else if (line.trim().startsWith('-') || line.trim().startsWith('•') || line.trim().startsWith('+')) {
+      return (
+        <li key={index} className="ml-6 mb-2 text-gray-700">
+          {line.trim().substring(1).trim()}
+        </li>
+      );
     }
-    // Empty lines as spacers
+    else if (line.toLowerCase().includes('email:') || line.toLowerCase().includes('phone:')) {
+      return (
+        <p key={index} className="text-gray-700 mb-1">
+          {line.trim()}
+        </p>
+      );
+    }
     else if (line.trim() === '') {
-      return <div key={index} className="h-2"></div>;
+      return <div key={index} className="h-2" />;
     }
-    // Regular text
     else {
-      return <p key={index} className="mb-2">{line}</p>;
+      return (
+        <p key={index} className="mb-2 text-gray-700">
+          {line}
+        </p>
+      );
     }
   });
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[80vh] bg-gradient-to-br from-white to-purple-50">
@@ -122,8 +137,8 @@ export function ResumeBuilder({ isOpen, onClose, resumeContent }: ResumeBuilderP
           </Button>
         </div>
         
-        <ScrollArea className="flex-1 p-6 bg-white rounded-lg shadow-md border border-gray-100">
-          <div id="resume-content" className="max-w-3xl mx-auto font-sans">
+        <ScrollArea className="flex-1 p-8 bg-white rounded-lg shadow-md border border-gray-100">
+          <div id="resume-content" className="max-w-3xl mx-auto font-sans leading-relaxed">
             {formattedContent}
           </div>
         </ScrollArea>
