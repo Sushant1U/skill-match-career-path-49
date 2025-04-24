@@ -45,6 +45,10 @@ export default function EmployerDashboard() {
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      
+      // Also invalidate the notifications page data
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      
       toast.success('Notification removed');
     } catch (error) {
       console.error('Error removing notification:', error);
@@ -54,15 +58,21 @@ export default function EmployerDashboard() {
 
   const markAllNotificationsAsRead = async () => {
     try {
+      if (!user?.id) return;
+      
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['employer-notifications', user?.id] });
+      
+      // Also invalidate the notifications page data
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      
       toast.success('All notifications removed');
     } catch (error) {
       console.error('Error removing all notifications:', error);

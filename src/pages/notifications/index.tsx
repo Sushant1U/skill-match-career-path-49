@@ -41,6 +41,9 @@ export default function NotificationsPage() {
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id, filter] });
       toast.success('Notification removed');
+      
+      // Also invalidate the dashboard notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     } catch (error) {
       console.error('Error removing notification:', error);
       toast.error('Failed to remove notification');
@@ -49,16 +52,21 @@ export default function NotificationsPage() {
 
   const markAllNotificationsAsRead = async () => {
     try {
+      if (!user?.id) return;
+      
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       
       // Invalidate and refetch notifications
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id, filter] });
       toast.success('All notifications removed');
+      
+      // Also invalidate the dashboard notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     } catch (error) {
       console.error('Error removing all notifications:', error);
       toast.error('Failed to remove notifications');

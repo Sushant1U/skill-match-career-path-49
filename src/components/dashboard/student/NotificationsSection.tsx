@@ -42,10 +42,12 @@ export function NotificationsSection() {
 
   const markAllNotificationsAsRead = async () => {
     try {
+      if (!user?.id) return;
+
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       
